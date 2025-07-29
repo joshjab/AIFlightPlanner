@@ -1,0 +1,26 @@
+.icao-select-container {
+  margin-bottom: 1.5em;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.icao-input {
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: var(--border-radius);
+  border: none;
+  padding: 0.75em 1em;
+  background: var(--color-bg);
+  color: var(--color-text);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  font-size: 1rem;
+  margin-bottom: 0.5em;
+  outline: none;
+  transition: border 0.2s;
+}
+
+.icao-input.error {
+  border: 2px solid var(--color-error);
+} 
