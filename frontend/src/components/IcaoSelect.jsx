@@ -2,7 +2,7 @@ import React, { useState, useId, useEffect } from 'react';
 import { isValidIcao } from '../utils/icaoList';
 import './IcaoSelect.css';
 
-export default function IcaoSelect({ label, value, onChange, icaoList }) {
+export default function IcaoSelect({ label, value, onChange, icaoList, onValidationChange }) {
   const [input, setInput] = useState(value || '');
   const [touched, setTouched] = useState(false);
   const inputId = useId();
@@ -17,7 +17,14 @@ export default function IcaoSelect({ label, value, onChange, icaoList }) {
     code.toLowerCase().includes(input.toLowerCase())
   );
 
-  const showError = touched && input && !isValidIcao(input);
+  const isValid = isValidIcao(input);
+  const showError = touched && input && !isValid;
+
+  useEffect(() => {
+    if (onValidationChange) {
+      onValidationChange(isValid);
+    }
+  }, [isValid, onValidationChange]);
 
   return (
     <div className="icao-select-container">

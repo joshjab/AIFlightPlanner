@@ -13,6 +13,8 @@ import { MOCK_BRIEFING_DATA } from './utils/mockData';
 function App() {
   const [departure, setDeparture] = useState('');
   const [destination, setDestination] = useState('');
+  const [isDepartureValid, setIsDepartureValid] = useState(false);
+  const [isDestinationValid, setIsDestinationValid] = useState(false);
   const [preferences, setPreferences] = useState(() => {
     const savedPrefs = localStorage.getItem('flightPlannerPrefs');
     return savedPrefs ? JSON.parse(savedPrefs) : {};
@@ -36,7 +38,7 @@ function App() {
   }
 
   function handlePlanFlight() {
-    if (departure && destination) {
+    if (departure && destination && isDepartureValid && isDestinationValid) {
       setShowBriefing(true);
     }
   }
@@ -75,15 +77,17 @@ function App() {
           value={departure}
           onChange={setDeparture}
           icaoList={ICAO_CODES}
+          onValidationChange={setIsDepartureValid}
         />
         <IcaoSelect
           label="Destination Airport (ICAO)"
           value={destination}
           onChange={setDestination}
           icaoList={ICAO_CODES}
+          onValidationChange={setIsDestinationValid}
         />
         <div className="button-container">
-          <button onClick={handlePlanFlight} disabled={!departure || !destination}>
+          <button onClick={handlePlanFlight} disabled={!departure || !destination || !isDepartureValid || !isDestinationValid}>
             Plan Flight
           </button>
           <SurpriseMeButton

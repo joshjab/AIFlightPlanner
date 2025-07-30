@@ -32,12 +32,22 @@
 
 .chat-input-area {
   display: flex;
+  flex-wrap: wrap; /* Allow wrapping on smaller screens */
   gap: 0.5em;
 }
 
 .chat-input-area input {
   flex-grow: 1;
   margin-bottom: 0; /* Remove margin from input */
+}
+
+@media (max-width: 600px) {
+  .chat-input-area input {
+    width: 100%; /* Full width on mobile */
+  }
+  .chat-input-area button {
+    flex-grow: 1; /* Take up remaining space */
+  }
 }
 
 .chat-input-area button {

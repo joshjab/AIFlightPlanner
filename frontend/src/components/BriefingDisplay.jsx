@@ -8,7 +8,19 @@ import './BriefingDisplay.css';
 const BriefingDisplay = ({ departure, destination, onAcknowledge, briefingAcknowledged }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [canAcknowledge, setCanAcknowledge] = useState(false);
+  const [briefingError, setBriefingError] = useState(null);
+
+  // Simulate API call for briefing data
   const briefing = MOCK_BRIEFING_DATA;
+
+  useEffect(() => {
+    // Simulate API error for specific ICAO codes
+    if (departure === 'KDEN' || destination === 'KDEN') {
+      setBriefingError('Error fetching briefing data for KDEN. Please try another airport.');
+    } else {
+      setBriefingError(null);
+    }
+  }, [departure, destination]);
 
   useEffect(() => {
     if (isExpanded) {
@@ -25,9 +37,17 @@ const BriefingDisplay = ({ departure, destination, onAcknowledge, briefingAcknow
     );
   }
 
+  if (briefingError) {
+    return (
+      <div className="briefing-container error">
+        <p>{briefingError}</p>
+      </div>
+    );
+  }
+
   return (
     <div className="briefing-container">
-      <h3>Flight Briefing: {briefing.route.departure} to {briefing.route.destination}</h3>
+      <h3>Flight Briefing: {departure} to {destination}</h3>
 
       <div className="map-placeholder">
         <img src="https://piperowner.org/wp-content/uploads/2024/08/VFR-Charts-cross-country-6.jpg" alt="VFR Map" />

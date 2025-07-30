@@ -6,9 +6,34 @@
   margin-top: 2em;
 }
 
+@media (max-width: 600px) {
+  .briefing-container {
+    padding: 1em;
+    margin-top: 1em;
+  }
+  .map-placeholder {
+    height: 300px; /* Adjust height for smaller screens */
+  }
+  .collapsible-header h4 {
+    font-size: 1rem;
+  }
+  .header-controls .acknowledge-button {
+    font-size: 0.9rem;
+    padding: 0.3em 0.6em;
+  }
+}
+
 .briefing-container.placeholder {
   text-align: center;
   color: var(--color-muted);
+}
+
+.briefing-container.error {
+  background-color: var(--color-error);
+  color: white;
+  text-align: center;
+  padding: 1em;
+  border-radius: var(--border-radius);
 }
 
 .briefing-section {
@@ -103,9 +128,9 @@
 
 .header-controls .acknowledge-button {
   width: auto;
-  padding: 0.5em 1em; /* Adjust padding to be more compact */
-  font-size: 0.9rem; /* Slightly smaller font for inline */
-  margin: 0; /* Remove any default margins */
+  padding: 0.2em 0.8em; /* Further adjust padding for inline */
+  font-size: 1.1rem; /* Match h4 font size */
+  margin: 0; /* Ensure no extra margin */
 }
 
 .briefing-details {
