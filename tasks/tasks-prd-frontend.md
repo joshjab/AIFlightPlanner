@@ -32,19 +32,19 @@
   - [x] 1.5 Configure testing framework (Jest, React Testing Library, Babel config complete)
   - [x] 1.6 Add dark theme base styles and ensure mobile responsiveness (theme.css implemented and imported in App.jsx)
 
-- [ ] 2.0 Implement ICAO code selection and validation (departure, destination, "Surprise Me")
+- [x] 2.0 Implement ICAO code selection and validation (departure, destination, "Surprise Me")
   - [x] 2.1 Create static/mock ICAO code list in `utils/icaoList.js` (ICAO_CODES array and isValidIcao function implemented)
   - [x] 2.2 Build `IcaoSelect` component with dropdown/searchable select and strict validation (IcaoSelect.jsx implemented with search/filter, strict validation, and error display)
   - [x] 2.3 Integrate `IcaoSelect` for both departure and destination fields in main UI (Both selects are now in App.jsx, with state and display)
   - [x] 2.4 Implement `SurpriseMeButton` to suggest a valid destination based on preferences (SurpriseMeButton is implemented and integrated in App.jsx, sets destination randomly)
   - [x] 2.5 Write unit tests for ICAO selection and validation (All tests pass for IcaoSelect and isValidIcao)
 
-- [ ] 3.0 Build pilot preferences modal (crosswind, home base, aircraft type, localStorage)
-  - [ ] 3.1 Design and implement `PreferencesModal` component
-  - [ ] 3.2 Add form fields for crosswind, home base, and aircraft type
-  - [ ] 3.3 Store/retrieve preferences in browser localStorage
-  - [ ] 3.4 Integrate modal into main UI (settings button, etc.)
-  - [ ] 3.5 Write unit tests for preferences modal and localStorage logic
+- [x] 3.0 Build pilot preferences modal (crosswind, home base, aircraft type, localStorage)
+  - [x] 3.1 Design and implement `PreferencesModal` component
+  - [x] 3.2 Add form fields for crosswind, home base, and aircraft type
+  - [x] 3.3 Store/retrieve preferences in browser localStorage
+  - [x] 3.4 Integrate modal into main UI (settings button, etc.)
+  - [x] 3.5 Write unit tests for preferences modal and localStorage logic
 
 - [ ] 4.0 Create briefing display and go/no-go recommendation UI
   - [ ] 4.1 Create `BriefingDisplay` component to show route, weather, NOTAMs, and airport info (mocked data)

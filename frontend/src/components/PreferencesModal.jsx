@@ -1,14 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import IcaoSelect from './IcaoSelect';
 import './PreferencesModal.css';
 
 export default function PreferencesModal({ open, onClose, onSave, initialPrefs, icaoList }) {
-  const [crosswind, setCrosswind] = useState(initialPrefs?.crosswind || '');
-  const [homeBase, setHomeBase] = useState(initialPrefs?.homeBase || '');
-  const [aircraft, setAircraft] = useState(initialPrefs?.aircraft || '');
-  const [speed, setSpeed] = useState(initialPrefs?.speed || '');
-  const [range, setRange] = useState(initialPrefs?.range || '');
-  const [cruiseAlt, setCruiseAlt] = useState(initialPrefs?.cruiseAlt || '');
+  const [crosswind, setCrosswind] = useState('');
+  const [homeBase, setHomeBase] = useState('');
+  const [aircraft, setAircraft] = useState('');
+  const [speed, setSpeed] = useState('');
+  const [range, setRange] = useState('');
+  const [cruiseAlt, setCruiseAlt] = useState('');
+
+  useEffect(() => {
+    // When the modal opens, populate the form with the initial preferences
+    if (open) {
+      setCrosswind(initialPrefs?.crosswind || '');
+      setHomeBase(initialPrefs?.homeBase || '');
+      setAircraft(initialPrefs?.aircraft || '');
+      setSpeed(initialPrefs?.speed || '');
+      setRange(initialPrefs?.range || '');
+      setCruiseAlt(initialPrefs?.cruiseAlt || '');
+    }
+  }, [open, initialPrefs]);
 
   if (!open) return null;
 
