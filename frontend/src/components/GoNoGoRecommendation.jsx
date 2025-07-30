@@ -15,7 +15,7 @@ const GoNoGoRecommendation = ({ briefing }) => {
     if (briefing.weather.enroute.warnings.length > 0) {
       reasons.push(`Enroute weather warnings: ${briefing.weather.enroute.warnings.join(', ')}`);
     }
-    if (parseInt(briefing.weather.destination.metar.split(' ').find(s => s.endsWith('KT')).substring(0,5)) > 20) {
+    if (parseInt(briefing.weather.destination.metar.split(' ').find(s => s.endsWith('KT')).substring(3, 5)) > 20) {
         isGo = false;
         reasons.push('Destination winds exceed limits.');
     }
