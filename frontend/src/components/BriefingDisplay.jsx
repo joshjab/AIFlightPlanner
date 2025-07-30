@@ -19,6 +19,10 @@ const BriefingDisplay = ({ departure, destination }) => {
     <div className="briefing-container">
       <h3>Flight Briefing: {briefing.route.departure} to {briefing.route.destination}</h3>
 
+      <div className="map-placeholder">
+        <img src="https://piperowner.org/wp-content/uploads/2024/08/VFR-Charts-cross-country-6.jpg" alt="VFR Map" />
+      </div>
+
       <div className="briefing-section">
         <h4>Route Information</h4>
         <p><strong>Distance:</strong> {briefing.route.distance} NM</p>

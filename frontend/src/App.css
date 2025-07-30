@@ -72,3 +72,34 @@
   background-color: var(--color-text);
   border-radius: 3px;
 }
+
+.app-container.briefing-view {
+  max-width: 90vw;
+  transition: max-width 0.3s ease-in-out;
+}
+
+.briefing-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1em;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  color: var(--color-text);
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+.flight-info {
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+@media (max-width: 600px) {
+  .flight-info {
+    font-size: 1rem;
+  }
+}
