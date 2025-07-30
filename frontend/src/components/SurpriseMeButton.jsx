@@ -26,8 +26,8 @@ export default function SurpriseMeButton({ icaoList, departure, onSurprise }) {
   }
 
   return (
-    <div style={{ marginBottom: '1em', width: '100%', display: 'flex', gap: 8, alignItems: 'center' }}>
-      <button type="button" onClick={handleClick} style={{ flex: 1, minWidth: 0 }}>
+    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+      <button type="button" onClick={handleClick} style={{ flex: 1 }}>
         🎲 Surprise Me
       </button>
       <select
@@ -35,13 +35,7 @@ export default function SurpriseMeButton({ icaoList, departure, onSurprise }) {
         onChange={e => setRouteTime(e.target.value)}
         style={{
           width: 'auto',
-          minWidth: 0,
           padding: '0.5em 1.5em 0.5em 0.75em',
-          borderRadius: 'var(--border-radius)',
-          background: 'var(--color-bg)',
-          color: 'var(--color-text)',
-          border: '1px solid var(--color-surface)',
-          fontSize: '1em',
           appearance: 'none',
           backgroundImage: 'linear-gradient(45deg, var(--color-muted) 50%, transparent 50%), linear-gradient(135deg, transparent 50%, var(--color-muted) 50%)',
           backgroundPosition: 'right 0.7em top 50%, right 1.2em top 50%',

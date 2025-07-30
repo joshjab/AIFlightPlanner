@@ -47,9 +47,9 @@
   - [x] 3.5 Write unit tests for preferences modal and localStorage logic
 
 - [ ] 4.0 Create briefing display and go/no-go recommendation UI
-  - [ ] 4.1 Create `BriefingDisplay` component to show route, weather, NOTAMs, and airport info (mocked data)
-  - [ ] 4.2 Build `GoNoGoRecommendation` component to display decision and reasons
-  - [ ] 4.3 Integrate both components into main UI, updating on route selection
+  - [x] 4.1 Create `BriefingDisplay` component to show route, weather, NOTAMs, and airport info (mocked data)
+  - [x] 4.2 Build `GoNoGoRecommendation` component to display decision and reasons
+  - [x] 4.3 Integrate both components into main UI, updating on route selection
   - [ ] 4.4 Write unit tests for briefing and go/no-go components
 
 - [ ] 5.0 Implement acknowledgement workflow and chat interface

@@ -41,6 +41,18 @@
   color: #888;
 }
 
+.button-container {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 1em;
+  gap: 4%;
+}
+
+.button-container > button,
+.button-container > div {
+  width: 48%;
+}
+
 .hamburger-button {
   background: none;
   border: none;

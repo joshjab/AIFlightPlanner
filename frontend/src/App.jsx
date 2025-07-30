@@ -5,6 +5,9 @@ import IcaoSelect from './components/IcaoSelect';
 import { ICAO_CODES } from './utils/icaoList';
 import SurpriseMeButton from './components/SurpriseMeButton';
 import PreferencesModal from './components/PreferencesModal';
+import BriefingDisplay from './components/BriefingDisplay';
+import GoNoGoRecommendation from './components/GoNoGoRecommendation';
+import { MOCK_BRIEFING_DATA } from './utils/mockData';
 
 function App() {
   const [departure, setDeparture] = useState('');
@@ -14,11 +17,18 @@ function App() {
     return savedPrefs ? JSON.parse(savedPrefs) : {};
   });
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showBriefing, setShowBriefing] = useState(false);
 
   function handleSavePreferences(newPrefs) {
     setPreferences(newPrefs);
     localStorage.setItem('flightPlannerPrefs', JSON.stringify(newPrefs));
     setIsModalOpen(false);
+  }
+
+  function handlePlanFlight() {
+    if (departure && destination) {
+      setShowBriefing(true);
+    }
   }
 
   return (
@@ -43,15 +53,28 @@ function App() {
         onChange={setDestination}
         icaoList={ICAO_CODES}
       />
-      <SurpriseMeButton
-        icaoList={ICAO_CODES}
-        departure={departure}
-        onSurprise={setDestination}
-      />
+      <div className="button-container">
+        <button onClick={handlePlanFlight} disabled={!departure || !destination}>
+          Plan Flight
+        </button>
+        <SurpriseMeButton
+          icaoList={ICAO_CODES}
+          departure={departure}
+          onSurprise={setDestination}
+        />
+      </div>
       <div style={{ marginTop: '2em', color: 'var(--color-muted)' }}>
         <div>Selected Departure: <b>{departure}</b></div>
         <div>Selected Destination: <b>{destination}</b></div>
       </div>
+
+      {showBriefing && (
+        <>
+          <GoNoGoRecommendation briefing={MOCK_BRIEFING_DATA} />
+          <BriefingDisplay departure={departure} destination={destination} />
+        </>
+      )}
+
       <PreferencesModal
         open={isModalOpen}
         onClose={() => setIsModalOpen(false)}

@@ -1,0 +1,34 @@
+.gono-container {
+  padding: 1.5em;
+  margin-top: 2em;
+  border-radius: var(--border-radius);
+  text-align: center;
+}
+
+.gono-container.go {
+  background-color: #2f4f4f; /* Dark Slate Gray for GO */
+  border: 1px solid #3cb371; /* Medium Sea Green */
+}
+
+.gono-container.no-go {
+  background-color: #5c3c3c; /* Darker red */
+  border: 1px solid var(--color-error);
+}
+
+.gono-title {
+  margin-top: 0;
+  margin-bottom: 1em;
+  font-size: 1.5rem;
+  color: var(--color-text);
+}
+
+.gono-reasons {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.gono-reasons li {
+  margin-bottom: 0.5em;
+}
