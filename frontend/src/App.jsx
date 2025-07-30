@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import './styles/theme.css';
 import './App.css';
 import IcaoSelect from './components/IcaoSelect';
@@ -7,6 +7,7 @@ import SurpriseMeButton from './components/SurpriseMeButton';
 import PreferencesModal from './components/PreferencesModal';
 import BriefingDisplay from './components/BriefingDisplay';
 import GoNoGoRecommendation from './components/GoNoGoRecommendation';
+import AcknowledgeButton from './components/AcknowledgeButton';
 import { MOCK_BRIEFING_DATA } from './utils/mockData';
 
 function App() {
@@ -18,6 +19,15 @@ function App() {
   });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showBriefing, setShowBriefing] = useState(false);
+  const [briefingAcknowledged, setBriefingAcknowledged] = useState(false);
+  const [canAcknowledge, setCanAcknowledge] = useState(false);
+
+  useEffect(() => {
+    if (showBriefing) {
+      const timer = setTimeout(() => setCanAcknowledge(true), 5000); // 5 seconds to review
+      return () => clearTimeout(timer);
+    }
+  }, [showBriefing]);
 
   function handleSavePreferences(newPrefs) {
     setPreferences(newPrefs);
@@ -29,6 +39,10 @@ function App() {
     if (departure && destination) {
       setShowBriefing(true);
     }
+  }
+
+  function handleAcknowledge() {
+    setBriefingAcknowledged(true);
   }
 
   return (
@@ -87,7 +101,12 @@ function App() {
       {showBriefing && (
         <>
           <GoNoGoRecommendation briefing={MOCK_BRIEFING_DATA} />
-          <BriefingDisplay departure={departure} destination={destination} />
+          <BriefingDisplay
+            departure={departure}
+            destination={destination}
+            onAcknowledge={handleAcknowledge}
+            briefingAcknowledged={briefingAcknowledged}
+          />
         </>
       )}
 
