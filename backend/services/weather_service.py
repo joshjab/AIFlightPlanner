@@ -23,3 +23,21 @@ def get_weather_data(icao_code: str) -> dict:
     except requests.exceptions.RequestException as e:
         print(f"Error fetching weather data for {icao_code}: {e}")
         return {"metar": "", "taf": ""}
+    except requests.exceptions.JSONDecodeError as e:
+        print(f"Error decoding JSON response for {icao_code}: {e}")
+        return {"metar": "", "taf": ""}
+
+def get_enroute_weather_warnings() -> list[str]:
+    """Fetches enroute weather warnings (SIGMETs) from the AWC API."""
+    sigmet_url = f"{AWC_API_BASE_URL}/sigmet?format=json"
+    try:
+        response = requests.get(sigmet_url)
+        response.raise_for_status()
+        sigmet_data = response.json()
+        return [sigmet.get("rawSigmet", "") for sigmet in sigmet_data]
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching SIGMETs: {e}")
+        return []
+    except requests.exceptions.JSONDecodeError as e:
+        print(f"Error decoding SIGMETs JSON response: {e}")
+        return []
