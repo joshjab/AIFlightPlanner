@@ -2,12 +2,13 @@
 
 This project is a web-based "Flight Planner" tool designed to assist pilots with pre-flight planning. It leverages an AI agent to gather essential data, provide a preliminary go/no-go analysis, and allow for interactive exploration of flight routes.
 
-This README documents the current state of the **frontend** application.
+This README documents the project, which includes a React frontend and a Python backend.
 
 ---
 
 ## Directory Structure
 
+-   `/backend`: Contains the Python-based backend application (FastAPI).
 -   `/doc`: Contains architecture and design documents.
 -   `/frontend`: Contains the React-based frontend application.
 -   `/rules`: Contains rules and guidelines for the development process.
@@ -34,11 +35,35 @@ The frontend is a minimal, mobile-friendly single-page application with the foll
 
 ## Getting Started
 
-Follow these instructions to run the frontend application on your local machine for development and testing purposes.
+Follow these instructions to run the application on your local machine.
 
-### Prerequisites
+### Backend
 
-You will need **Node.js version 20.19.0 or newer**. You can manage Node.js versions easily using [nvm](https://github.com/nvm-sh/nvm).
+1.  **Navigate to the backend directory:**
+    ```sh
+    cd backend
+    ```
+
+2.  **Create and activate a virtual environment:**
+    ```sh
+    python3 -m venv venv
+    source venv/bin/activate
+    ```
+
+3.  **Install dependencies:**
+    ```sh
+    pip install -r requirements.txt
+    ```
+
+4.  **Run the backend server:**
+    ```sh
+    uvicorn main:app --reload
+    ```
+    The backend API will be available at `http://127.0.0.1:8000`.
+
+### Frontend
+
+**Prerequisites:** You will need **Node.js version 20.19.0 or newer**. You can manage Node.js versions easily using [nvm](https://github.com/nvm-sh/nvm).
 
 1.  **Install or Switch to Node.js v20:**
     ```sh
