@@ -1,9 +1,15 @@
 import requests
+from backend.core.cache import cache
 
 AWC_API_BASE_URL = "https://aviationweather.gov/api/data"
 
 def get_weather_data(icao_code: str) -> dict:
     """Fetches METAR and TAF data for a given ICAO code from the AWC API."""
+    cache_key = f"weather_data_{icao_code}"
+    cached_data = cache.get(cache_key)
+    if cached_data:
+        return cached_data
+
     metar_url = f"{AWC_API_BASE_URL}/metar?ids={icao_code}&format=json"
     taf_url = f"{AWC_API_BASE_URL}/taf?ids={icao_code}&format=json"
 
@@ -16,10 +22,12 @@ def get_weather_data(icao_code: str) -> dict:
         taf_response.raise_for_status()
         taf_data = taf_response.json()
 
-        return {
+        result = {
             "metar": metar_data[0]["rawOb"] if metar_data else "",
             "taf": taf_data[0]["rawTAF"] if taf_data else ""
         }
+        cache.set(cache_key, result)
+        return result
     except requests.exceptions.RequestException as e:
         print(f"Error fetching weather data for {icao_code}: {e}")
         return {"metar": "", "taf": ""}
@@ -29,12 +37,19 @@ def get_weather_data(icao_code: str) -> dict:
 
 def get_enroute_weather_warnings() -> list[str]:
     """Fetches enroute weather warnings (SIGMETs) from the AWC API."""
+    cache_key = "enroute_weather_warnings"
+    cached_data = cache.get(cache_key)
+    if cached_data:
+        return cached_data
+
     sigmet_url = f"{AWC_API_BASE_URL}/sigmet?format=json"
     try:
         response = requests.get(sigmet_url)
         response.raise_for_status()
         sigmet_data = response.json()
-        return [sigmet.get("rawSigmet", "") for sigmet in sigmet_data]
+        result = [sigmet.get("rawSigmet", "") for sigmet in sigmet_data]
+        cache.set(cache_key, result)
+        return result
     except requests.exceptions.RequestException as e:
         print(f"Error fetching SIGMETs: {e}")
         return []

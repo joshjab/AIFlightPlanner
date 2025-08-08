@@ -1,5 +1,6 @@
 import requests
 from typing import List, Dict, Any
+from backend.core.cache import cache
 
 def get_notams(icao_code: str) -> List[Dict[str, Any]]:
     """
@@ -12,6 +13,11 @@ def get_notams(icao_code: str) -> List[Dict[str, Any]]:
         A list of dictionaries, where each dictionary represents a NOTAM.
         Returns an empty list if the request fails or no NOTAMs are found.
     """
+    cache_key = f"notams_{icao_code}"
+    cached_data = cache.get(cache_key)
+    if cached_data:
+        return cached_data
+
     # Note: The NASA NOTAM API endpoint and parameters are based on online documentation
     # and may need to be adjusted.
     url = f"https://notams.aim.nas.nasa.gov/api/v1/notams?location={icao_code}"
@@ -19,7 +25,9 @@ def get_notams(icao_code: str) -> List[Dict[str, Any]]:
         response = requests.get(url)
         response.raise_for_status()  # Raise an exception for bad status codes
         data = response.json()
-        return data.get("items", [])
+        result = data.get("items", [])
+        cache.set(cache_key, result)
+        return result
     except requests.exceptions.RequestException as e:
         print(f"Error fetching NOTAMs for {icao_code}: {e}")
         return []

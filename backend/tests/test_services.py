@@ -2,6 +2,12 @@ import pytest
 import requests
 import requests_mock
 from backend.services import weather_service, notam_service
+from backend.core.cache import cache
+
+
+@pytest.fixture(autouse=True)
+def _clear_cache():
+    cache._cache = {}
 
 
 @pytest.fixture

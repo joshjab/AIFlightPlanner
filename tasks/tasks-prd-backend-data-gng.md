@@ -33,12 +33,12 @@
   - [x] 2.4 Implement robust error handling in all service functions to manage external API failures gracefully.
   - [x] 2.5 In `tests/test_services.py`, write unit tests for the `weather_service` and `notam_service` functions, mocking external API calls.
 - [ ] 3.0 Implement Caching and Data Persistence
-  - [ ] 3.1 In `database.py`, set up the SQLAlchemy engine and session management for a SQLite database.
-  - [ ] 3.2 In `schemas.py`, define the table schema for storing FAA airport data (e.g., name, elevation, runways).
-  - [ ] 3.3 Create a one-off script to download and populate the SQLite database with the FAA Airport Data.
-  - [ ] 3.4 In `services/airport_service.py`, create a function to retrieve airport details from the database.
-  - [ ] 3.5 Implement a caching layer (e.g., using `cachetools` or a simple dictionary with timestamps) for external API responses to minimize redundant calls.
-  - [ ] 3.6 In `tests/test_services.py`, write unit tests for the `airport_service` functions, mocking database interactions.
+  - [x] 3.1 In `database.py`, set up the SQLAlchemy engine and session management for a SQLite database.
+  - [x] 3.2 In `schemas.py`, define the table schema for storing FAA airport data (e.g., name, elevation, runways).
+  - [x] 3.3 Create a one-off script to download and populate the SQLite database with the FAA Airport Data.
+  - [x] 3.4 In `services/airport_service.py`, create a function to retrieve airport details from the database.
+  - [x] 3.5 Implement a caching layer (e.g., using `cachetools` or a simple dictionary with timestamps) for external API responses to minimize redundant calls.
+  - [x] 3.6 In `tests/test_services.py`, write unit tests for the `airport_service` functions, mocking database interactions.
 - [ ] 4.0 Develop Go/No-Go Recommendation Engine
   - [ ] 4.1 In `models.py`, define the Pydantic model for pilot preferences received in the API request.
   - [ ] 4.2 Create a new `services/recommendation_service.py` to house the Go/No-Go logic.
