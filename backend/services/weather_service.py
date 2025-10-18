@@ -42,7 +42,7 @@ def get_enroute_weather_warnings() -> list[str]:
     if cached_data:
         return cached_data
 
-    sigmet_url = f"{AWC_API_BASE_URL}/sigmet?format=json"
+    sigmet_url = f"{AWC_API_BASE_URL}/airsigmet?format=json"
     try:
         response = requests.get(sigmet_url)
         response.raise_for_status()
@@ -56,3 +56,10 @@ def get_enroute_weather_warnings() -> list[str]:
     except requests.exceptions.JSONDecodeError as e:
         print(f"Error decoding SIGMETs JSON response: {e}")
         return []
+
+if __name__ == "__main__":
+    print("--- Testing Weather Service ---")
+    weather_data = get_weather_data("KSFO")
+    print(f"Weather data for KSFO: {weather_data}")
+    enroute_warnings = get_enroute_weather_warnings()
+    print(f"Enroute weather warnings: {enroute_warnings}")

@@ -23,12 +23,12 @@ This document outlines the requirements for the initial backend component of the
 ## 4. Functional Requirements
 
 1.  **Data Acquisition:**
-    *   The backend must fetch METARs and TAFs from the Aviation Weather Center (AWC) for specified ICAO codes.
-    *   The backend must fetch NOTAMs from the FAA NOTAM System for specified ICAO codes.
+    *   The backend must scrape METARs and TAFs from the Aviation Weather Center (AWC) website for specified ICAO codes.
+    *   The backend must scrape NOTAMs from the FAA NOTAM System website for specified ICAO codes.
     *   The backend must retrieve detailed airport information (name, elevation, runways) from a local database populated with FAA Airport Data.
-    *   The backend must be able to fetch enroute weather warnings (e.g., turbulence, thunderstorms) from AWC.
+    *   The backend must be able to scrape enroute weather warnings (e.g., turbulence, thunderstorms) from the AWC website.
 2.  **Data Caching and Persistence:**
-    *   The backend must implement a mechanism to cache data obtained from external APIs (AWC, FAA NOTAMs) to reduce redundant calls and improve response times.
+    *   The backend must implement a mechanism to cache data obtained from external web scraping to reduce redundant requests and improve response times.
     *   The backend must maintain a persistent database for FAA Airport Data, which can be updated periodically.
     *   The caching mechanism should handle data freshness, potentially with configurable expiry times.
 3.  **Go/No-Go Recommendation Logic:**
@@ -94,8 +94,8 @@ This document outlines the requirements for the initial backend component of the
         }
         ```
 5.  **Error Handling:**
-    *   The backend must gracefully handle errors during external API calls (e.g., network issues, API rate limits, invalid responses).
-    *   In case of external API failures, the backend should return appropriate error messages or status codes to the frontend, indicating which data could not be retrieved.
+    *   The backend must gracefully handle errors during web scraping (e.g., network issues, website structure changes, CAPTCHAs).
+    *   In case of web scraping failures, the backend should return appropriate error messages or status codes to the frontend, indicating which data could not be retrieved.
     *   The data caching/database population process should be resilient to errors from external sources.
 
 ## 5. Non-Goals (Out of Scope)
