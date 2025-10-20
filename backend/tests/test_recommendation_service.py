@@ -20,14 +20,44 @@ VFR_CONDITIONS = {
     "is_night": False
 }
 
+MVFR_CONDITIONS = {
+    "ceiling": 2500,
+    "visibility": 4,
+    "wind_speed": 8,
+    "wind_direction": 180,
+    "runway_heading": 170,
+    "flight_category": "MVFR",
+    "is_night": False
+}
+
 IFR_CONDITIONS = {
-    "ceiling": 400,
+    "ceiling": 800,
     "visibility": 2,
     "wind_speed": 12,
     "wind_direction": 90,
     "runway_heading": 80,
     "flight_category": "IFR",
     "is_night": False
+}
+
+LIFR_CONDITIONS = {
+    "ceiling": 400,
+    "visibility": 0.5,
+    "wind_speed": 5,
+    "wind_direction": 90,
+    "runway_heading": 80,
+    "flight_category": "LIFR",
+    "is_night": False
+}
+
+SPECIAL_VFR_CONDITIONS = {
+    "ceiling": 1500,
+    "visibility": 1.5,
+    "wind_speed": 8,
+    "wind_direction": 180,
+    "runway_heading": 170,
+    "flight_category": "IFR",
+    "is_night": False  # Special VFR only allowed during day
 }
 
 GOOD_NOTAMS = [
@@ -58,7 +88,12 @@ def vfr_pilot_preferences():
             wind_speed_kts=15,
             crosswind_component_kts=8
         ),
-        night_minimums=None,  # No night operations
+        night_minimums=WeatherMinimums(
+            visibility_sm=5,
+            ceiling_ft=3000,
+            wind_speed_kts=12,
+            crosswind_component_kts=8
+        ),
         allow_rain=True,
         allow_snow=False,
         allow_thunderstorms_nearby=False
@@ -193,10 +228,64 @@ def test_mixed_conditions(vfr_pilot_preferences):
             "KYYY",  # IFR arrival
             vfr_pilot_preferences
         )
-        
+
         assert go is False
         assert any("arrival" in reason.lower() for reason in reasons)
         assert not any("departure" in reason.lower() for reason in reasons)
+
+def test_vfr_pilot_in_mvfr_conditions(vfr_pilot_preferences):
+    """Test a VFR pilot in MVFR conditions (marginal but legal)"""
+    weather_data = {"metar": "test", "taf": "test"}
+    with (
+        patch('backend.services.recommendation_service._process_weather_data', return_value=MVFR_CONDITIONS),
+        patch('backend.services.weather_service.get_weather_data', return_value=weather_data),
+        patch('backend.services.weather_service.get_enroute_weather_warnings', return_value=NO_WARNINGS),
+        patch('backend.services.notam_service.get_notams', return_value=GOOD_NOTAMS)
+    ):
+        go, reasons = recommendation_service.get_recommendation(
+            "KXXX",
+            "KXXX",
+            vfr_pilot_preferences
+        )
+        
+        assert go is False
+        assert any("visibility" in reason.lower() or "ceiling" in reason.lower() for reason in reasons)
+
+def test_vfr_pilot_in_special_vfr_conditions(vfr_pilot_preferences):
+    """Test a VFR pilot in Special VFR conditions during day"""
+    weather_data = {"metar": "test", "taf": "test"}
+    with (
+        patch('backend.services.recommendation_service._process_weather_data', return_value=SPECIAL_VFR_CONDITIONS),
+        patch('backend.services.weather_service.get_weather_data', return_value=weather_data),
+        patch('backend.services.weather_service.get_enroute_weather_warnings', return_value=NO_WARNINGS),
+        patch('backend.services.notam_service.get_notams', return_value=GOOD_NOTAMS)
+    ):
+        go, reasons = recommendation_service.get_recommendation(
+            "KXXX",
+            "KXXX",
+            vfr_pilot_preferences
+        )
+        
+        assert go is True
+        assert len(reasons) == 0
+
+def test_vfr_pilot_in_lifr_conditions(vfr_pilot_preferences):
+    """Test a VFR pilot in Low IFR conditions (always no-go)"""
+    weather_data = {"metar": "test", "taf": "test"}
+    with (
+        patch('backend.services.recommendation_service._process_weather_data', return_value=LIFR_CONDITIONS),
+        patch('backend.services.weather_service.get_weather_data', return_value=weather_data),
+        patch('backend.services.weather_service.get_enroute_weather_warnings', return_value=NO_WARNINGS),
+        patch('backend.services.notam_service.get_notams', return_value=GOOD_NOTAMS)
+    ):
+        go, reasons = recommendation_service.get_recommendation(
+            "KXXX",
+            "KXXX",
+            vfr_pilot_preferences
+        )
+        
+        assert go is False
+        assert any("visibility" in reason.lower() for reason in reasons)
 
 def test_night_operations_not_allowed(vfr_pilot_preferences):
     """Test that night operations are rejected when night minimums aren't specified"""
