@@ -70,10 +70,12 @@ def populate_airport_data():
             )
 
             # 4. Select and rename columns for our schema
-            df_final = df_merged[['ident', 'name', 'elevation_ft', 'runways']]
+            df_final = df_merged[['ident', 'name', 'elevation_ft', 'latitude_deg', 'longitude_deg', 'runways']]
             df_final = df_final.rename(columns={
                 'ident': 'icao_code',
-                'elevation_ft': 'elevation'
+                'elevation_ft': 'elevation',
+                'latitude_deg': 'latitude',
+                'longitude_deg': 'longitude'
             })
 
             # Clean NaN values, replacing them with None (which becomes NULL in DB)
