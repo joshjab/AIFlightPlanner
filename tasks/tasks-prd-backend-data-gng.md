@@ -53,7 +53,7 @@
   - [x] 4.2 Create a new `services/recommendation_service.py` to house the Go/No-Go logic.
   - [x] 4.3 Implement the rules-based engine for Go/No-Go decisions.
   - [x] 4.4 Generate human-readable reasons for recommendations.
-  - [ ] 4.5 In `tests/test_services.py`, write unit tests for the `recommendation_service`.
+  - [x] 4.5 In `tests/test_services.py`, write unit tests for the `recommendation_service`.
   - [ ] 4.6 Implement weather minimums validation based on flight rules (VFR/IFR).
   - [ ] 4.7 Create route-based weather analysis functionality.
 - [ ] 5.0 Build and Integrate Frontend with `/api/briefing` Endpoint

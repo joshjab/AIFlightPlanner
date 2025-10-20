@@ -16,7 +16,7 @@ from backend.utils.reason_formatter import (
     format_enroute_reason
 )
 
-async def get_recommendation(
+def get_recommendation(
     departure_icao: str,
     arrival_icao: str,
     pilot_preferences: PilotPreferences
@@ -190,7 +190,7 @@ def _check_airport_conditions(
                 airport_type
             )
         )    
-        return go
+    return go
 
 def _check_notams(notams: List[str], icao: str, airport_type: str, reasons: List[str]) -> bool:
     """
@@ -321,7 +321,6 @@ def _calculate_crosswind(
 
 
 if __name__ == "__main__":
-    import asyncio
     from backend.models.pilot_preferences import (
         PilotPreferences,
         PilotRatings,
@@ -329,7 +328,7 @@ if __name__ == "__main__":
         FlightRules
     )
 
-    async def test_recommendation_service():
+    def test_recommendation_service():
         # Create sample pilot preferences
         preferences = PilotPreferences(
             ratings=[PilotRatings.PRIVATE],  # VFR only pilot
@@ -397,7 +396,7 @@ if __name__ == "__main__":
 
         try:
             # Test the service with our mock data
-            go, reasons = await get_recommendation("KXXX", "KYYY", preferences)
+            go, reasons = get_recommendation("KXXX", "KYYY", preferences)
 
             print(f"\nRecommendation: {'GO' if go else 'NO-GO'}")
             print("\nReasons:")
@@ -411,4 +410,4 @@ if __name__ == "__main__":
             notam_service.get_notams = original_get_notams
 
     # Run the test
-    asyncio.run(test_recommendation_service())
+    test_recommendation_service()
