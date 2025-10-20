@@ -39,8 +39,8 @@
   - [ ] 2.6 Enhance weather service to include parsed weather data and flight category determination.
 - [ ] 3.0 Implement Caching and Data Persistence
   - [x] 3.1 In `database.py`, set up the SQLAlchemy engine and session management for a SQLite database.
-  - [ ] 3.2 In `schemas.py`, define the table schema for storing airport data (e.g., name, elevation, runways, weather, NOTAMs).
-  - [ ] 3.3 Enhance the `populate_airport_data.py` script to:
+  - [X] 3.2 In `schemas.py`, define the table schema for storing airport data (e.g., name, elevation, runways, weather, NOTAMs).
+  - [X] 3.3 Enhance the `populate_airport_data.py` script to:
     - Download airport data from OurAirports.
     - Use the `weather_service` and `notam_service` to fetch initial weather and NOTAM data for each airport.
     - Populate the database with the combined airport, weather, and NOTAM data.
@@ -49,7 +49,7 @@
   - [ ] 3.6 In `tests/test_services.py`, write unit tests for the `airport_service` functions.
   - [ ] 3.7 Implement sophisticated cache invalidation strategy with different TTLs for different data types.
 - [ ] 4.0 Develop Go/No-Go Recommendation Engine
-  - [ ] 4.1 In `models.py`, define the Pydantic model for pilot preferences received in the API request.
+  - [x] 4.1 In `models.py`, define the Pydantic model for pilot preferences received in the API request.
   - [ ] 4.2 Create a new `services/recommendation_service.py` to house the Go/No-Go logic.
   - [ ] 4.3 Implement the rules-based engine for Go/No-Go decisions.
   - [ ] 4.4 Generate human-readable reasons for recommendations.
