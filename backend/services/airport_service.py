@@ -4,7 +4,34 @@ from backend.database import SessionLocal, engine, Base
 from backend.scripts.populate_airport_data import populate_airport_data
 
 def get_airport(db: Session, icao_code: str):
+    """
+    Get airport data from the database.
+    
+    Args:
+        db: Database session
+        icao_code: The ICAO code of the airport to retrieve
+        
+    Returns:
+        Airport object with all details or None if not found
+    """
     return db.query(Airport).filter(Airport.icao_code == icao_code).first()
+
+def get_airport_by_icao(icao_code: str) -> dict:
+    """
+    Get airport information by ICAO code.
+    
+    Args:
+        icao_code: The ICAO code of the airport
+        
+    Returns:
+        Dictionary containing airport details or None if not found
+    """
+    db = SessionLocal()
+    try:
+        airport = get_airport(db, icao_code)
+        return airport.to_dict() if airport else None
+    finally:
+        db.close()
 
 if __name__ == "__main__":
     print("--- Testing Airport Service ---")
