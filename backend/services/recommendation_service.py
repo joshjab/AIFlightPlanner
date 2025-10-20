@@ -6,6 +6,7 @@ from typing import Dict, List, Tuple
 import math
 
 from backend.models.pilot_preferences import PilotPreferences, PilotRatings, FlightRules
+from backend.models.weather_models import determine_flight_category, can_fly_vfr, FlightCategory
 from backend.services import weather_service, airport_service, notam_service
 from backend.utils.reason_formatter import (
     format_weather_reason,
@@ -101,15 +102,53 @@ def _check_airport_conditions(
     """
     go = True
 
-    # Get appropriate minimums based on time of day
-    minimums = preferences.night_minimums if conditions["is_night"] else preferences.day_minimums
-    if conditions["is_night"] and preferences.night_minimums is None:
-        go = False
-        reasons.append(
-            f"{airport_type} conditions will be night, "
-            "but pilot has not specified night minimums"
-        )
-        return go
+    # Handle night operations first
+    if conditions["is_night"]:
+        if preferences.night_minimums is None:
+            go = False
+            reasons.append(f"{airport_type} operations will be at night, but pilot has not specified night minimums")
+            return go
+        minimums = preferences.night_minimums
+    else:
+        minimums = preferences.day_minimums
+
+    # For VFR flight plans, check if VFR flight is possible
+    if preferences.flight_rules == FlightRules.VFR:
+        if not can_fly_vfr(conditions):
+            if conditions["is_night"]:
+                go = False
+                if conditions["visibility"] < 3:
+                    reasons.append(
+                        format_weather_reason(
+                            "night VFR visibility",
+                            conditions["visibility"],
+                            3,
+                            "SM",
+                            airport_type
+                        )
+                    )
+                if conditions["ceiling"] < 1000:
+                    reasons.append(
+                        format_weather_reason(
+                            "night VFR ceiling",
+                            conditions["ceiling"],
+                            1000,
+                            "ft",
+                            airport_type
+                        )
+                    )
+                return go
+            # Check for Special VFR possibility during day
+            elif conditions["visibility"] >= 1 and conditions["ceiling"] >= 500:
+                # Special VFR is possible - continue with other checks
+                pass
+            else:
+                go = False
+                reasons.append(
+                    f"{airport_type} conditions require IFR. Visibility {conditions['visibility']}SM and "
+                    f"ceiling {conditions['ceiling']}ft are below VFR minimums and Special VFR is not possible."
+                )
+                return go
 
     # Check ceiling against pilot minimums
     if conditions["ceiling"] < minimums.ceiling_ft:
@@ -169,27 +208,86 @@ def _check_airport_conditions(
                 )
             )
 
-    # If pilot doesn't have an instrument rating but requesting IFR, that's a no-go
-    if preferences.flight_rules == FlightRules.IFR and PilotRatings.INSTRUMENT not in preferences.ratings:
+    # Check basic rating requirements and ratings vs conditions
+    if preferences.flight_rules == FlightRules.IFR:
+        if PilotRatings.INSTRUMENT not in preferences.ratings:
+            go = False
+            reasons.append(
+                format_rating_reason(
+                    "IFR",
+                    "an instrument rating",
+                    airport_type
+                )
+            )
+            return go
+        # For IFR flights, check if the conditions are below approach minimums
+        if conditions["ceiling"] < 200 or conditions["visibility"] < 0.5:
+            go = False
+            reasons.append(
+                f"{airport_type} conditions are below standard IFR approach minimums "
+                f"(ceiling {conditions['ceiling']}ft, visibility {conditions['visibility']}SM)"
+            )
+            return go
+    
+    # Check weather minimums if we've made it this far
+    # Check ceiling against pilot minimums
+    if conditions["ceiling"] < minimums.ceiling_ft:
         go = False
         reasons.append(
-            format_rating_reason(
-                "IFR",
-                "an instrument rating",
-                None  # This applies to the whole flight
+            format_weather_reason(
+                "ceiling",
+                conditions["ceiling"],
+                minimums.ceiling_ft,
+                "ft",
+                airport_type
             )
         )
 
-    # If pilot is VFR only and conditions are not VFR, that's a no-go
-    if PilotRatings.INSTRUMENT not in preferences.ratings and conditions["flight_category"] != "VFR":
+    # Check visibility against pilot minimums
+    if conditions["visibility"] < minimums.visibility_sm:
         go = False
         reasons.append(
-            format_rating_reason(
-                conditions["flight_category"],
-                "an instrument rating",
+            format_weather_reason(
+                "visibility",
+                conditions["visibility"],
+                minimums.visibility_sm,
+                "SM",
                 airport_type
             )
-        )    
+        )
+
+    # Check wind conditions
+    max_wind = minimums.wind_speed_kts
+    if conditions["wind_speed"] > max_wind:
+        go = False
+        reasons.append(
+            format_wind_reason(
+                conditions["wind_speed"],
+                conditions["wind_direction"],
+                conditions.get("gust_speed"),
+                max_wind,
+                airport_type
+            )
+        )
+
+    # Check crosswind component if specified
+    if minimums.crosswind_component_kts:
+        crosswind = _calculate_crosswind(
+            conditions["wind_direction"],
+            conditions["wind_speed"],
+            conditions["runway_heading"]
+        )
+        if crosswind > minimums.crosswind_component_kts:
+            go = False
+            reasons.append(
+                format_crosswind_reason(
+                    crosswind,
+                    minimums.crosswind_component_kts,
+                    airport_type,
+                    conditions.get("runway", "in use")
+                )
+            )
+
     return go
 
 def _check_notams(notams: List[str], icao: str, airport_type: str, reasons: List[str]) -> bool:
@@ -288,15 +386,22 @@ def _process_weather_data(weather_data: Dict, icao_code: str) -> Dict:
     
     # TODO: Add proper METAR parsing
     # For now returning mock data - this should be replaced with actual parsing
-    return {
-        "ceiling": 3000,  # This should come from METAR ceiling
-        "visibility": 5,  # This should come from METAR visibility
+    ceiling = 3000  # This should come from METAR ceiling
+    visibility = 5  # This should come from METAR visibility
+    conditions = {
+        "ceiling": ceiling,
+        "visibility": visibility,
         "wind_speed": 10,  # This should come from METAR wind
         "wind_direction": 180,  # This should come from METAR wind
         "runway_heading": 170,  # This should come from airport data
-        "flight_category": "VFR",  # This should be calculated from ceiling/visibility
         "is_night": False  # This should be calculated based on current time and location
     }
+    
+    # Calculate flight category based on ceiling and visibility
+    category = determine_flight_category(ceiling, visibility)
+    conditions["flight_category"] = category.value
+    
+    return conditions
 
 def _calculate_crosswind(
     wind_direction: int,
