@@ -57,7 +57,8 @@ Follow these instructions to run the application on your local machine.
 
 4.  **Run the backend server:**
     ```sh
-    uvicorn main:app --reload
+    cd ../
+    uvicorn backend.main:app --reload
     ```
     The backend API will be available at `http://127.0.0.1:8000`.
 

@@ -5,14 +5,20 @@ from backend.database import engine, Base
 from backend.schemas import Airport
 from datetime import datetime, timedelta
 
-# URL for FAA Airport Data (example - you might need to find the most current one)
-# A good source might be: https://nfdc.faa.gov/webContent/28DaySubsetZip.zip
-# and then extract the relevant CSV, e.g., "APT.txt" or similar.
-# For simplicity, let’s assume a direct CSV link for now, or you’d need to handle ZIP extraction.
-FAA_AIRPORT_DATA_URL = "https://nfdc.faa.gov/webContent/28DaySubsetZip/APT.txt"
+# URLs for ourairports-data on GitHub
+AIRPORTS_CSV_URL = "https://raw.githubusercontent.com/davidmegginson/ourairports-data/main/airports.csv"
+RUNWAYS_CSV_URL = "https://raw.githubusercontent.com/davidmegginson/ourairports-data/main/runways.csv"
+
 DATA_FRESHNESS_THRESHOLD_MONTHS = 3
 
 def populate_airport_data():
+    """
+    Downloads airport and runway data, processes it, and updates the database.
+    
+    Performs an "upsert":
+    - If an airport (by icao_code) exists, it's updated.
+    - If it doesn't exist, it's created.
+    """
     print("Creating database tables if they don’t exist...")
     Base.metadata.create_all(bind=engine)
     print("Tables checked/created.")
@@ -37,40 +43,81 @@ def populate_airport_data():
                 print(f"Airport data is fresh ({age_in_months:.1f} months old). No update needed.")
 
         if should_update:
-            print(f"Downloading data from {FAA_AIRPORT_DATA_URL}...")
-            # This might need adjustment based on the actual file format and separator
-            # df = pd.read_csv(FAA_AIRPORT_DATA_URL, sep='\t', header=None, encoding='latin1')
-            # print("Data downloaded and read into DataFrame.")
+            # 1. Download data
+            print(f"Downloading data from {AIRPORTS_CSV_URL}...")
+            df_airports = pd.read_csv(AIRPORTS_CSV_URL)
+            print(f"Downloading data from {RUNWAYS_CSV_URL}...")
+            df_runways = pd.read_csv(RUNWAYS_CSV_URL)
 
-            # Placeholder for actual column mapping based on FAA APT.txt structure
-            # For APT.txt, ICAO is usually in a specific position, name, etc.
-            # This is a simplified example. A real implementation would parse APT.txt carefully.
-            # Let’s assume for now we can extract relevant fields.
-            # This part will likely require manual inspection of the FAA data file.
+            # 2. Process Runway Data
+            # Create a 'runway_pair' (e.g., "09L/27R")
+            print("Processing runway data...")
+            df_runways_clean = df_runways.dropna(subset=['le_ident', 'he_ident'])
+            df_runways_clean['runway_pair'] = df_runways_clean['le_ident'].astype(str) + '/' + df_runways_clean['he_ident'].astype(str)
+            
+            # Group by airport and aggregate runway strings
+            runway_groups = df_runways_clean.groupby('airport_ident')['runway_pair'].apply(lambda x: ', '.join(x))
+            df_runway_summary = runway_groups.reset_index(name='runways')
 
-            # Let’s create some dummy data for now to ensure the script runs, 
-            # and then I’ll provide instructions to the user to refine this part.
-            dummy_data = [
-                {"icao_code": "KLAX", "name": "Los Angeles Intl", "elevation": "126", "runways": "12L/30R, 12R/30L"},
-                {"icao_code": "KORD", "name": "Chicago O’Hare Intl", "elevation": "672", "runways": "09L/27R, 09R/27L"},
-            ]
+            # 3. Merge Airport and Runway Data
+            print("Merging airport and runway data...")
+            df_merged = pd.merge(
+                df_airports, 
+                df_runway_summary, 
+                left_on='ident', 
+                right_on='airport_ident', 
+                how='left'
+            )
 
-            # Clear existing data before inserting new data
-            session.query(Airport).delete()
-            session.commit()
+            # 4. Select and rename columns for our schema
+            df_final = df_merged[['ident', 'name', 'elevation_ft', 'runways']]
+            df_final = df_final.rename(columns={
+                'ident': 'icao_code',
+                'elevation_ft': 'elevation'
+            })
 
-            for data in dummy_data:
-                airport = Airport(
-                    icao_code=data["icao_code"],
-                    name=data["name"],
-                    elevation=data["elevation"],
-                    runways=data["runways"],
-                    last_updated=datetime.now() # Set last_updated for new entries
-                )
-                session.add(airport)
+            # Clean NaN values, replacing them with None (which becomes NULL in DB)
+            df_final = df_final.where(pd.notnull(df_final), None)
+            
+            # 5. Perform Database Upsert
+            print("Fetching existing airports from DB for comparison...")
+            existing_airports = {a.icao_code: a for a in session.query(Airport).all()}
+            print(f"Found {len(existing_airports)} existing airports.")
+
+            new_count = 0
+            updated_count = 0
+            update_time = datetime.now()
+
+            print("Iterating through downloaded data for updates/inserts...")
+            for row in df_final.to_dict('records'):
+                icao = row['icao_code']
+                if not icao:
+                    continue  # Skip rows with no icao_code
+
+                airport = existing_airports.get(icao)
+
+                if airport:
+                    # Update existing airport
+                    airport.name = row['name']
+                    airport.elevation = str(row['elevation']) if row['elevation'] is not None else None
+                    airport.runways = row['runways']
+                    airport.last_updated = update_time
+                    updated_count += 1
+                else:
+                    # Add new airport
+                    new_airport = Airport(
+                        icao_code=icao,
+                        name=row['name'],
+                        elevation=str(row['elevation']) if row['elevation'] is not None else None,
+                        runways=row['runways'],
+                        last_updated=update_time
+                    )
+                    session.add(new_airport)
+                    new_count += 1
             
             session.commit()
-            print("Airport data populated successfully.")
+            print(f"Airport data population complete. Added: {new_count}, Updated: {updated_count}.")
+
         else:
             print("Skipping data population as data is fresh.")
 
@@ -79,6 +126,7 @@ def populate_airport_data():
         print(f"Error populating airport data: {e}")
     finally:
         session.close()
+        print("Database session closed.")
 
 if __name__ == "__main__":
     populate_airport_data()
