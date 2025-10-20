@@ -64,17 +64,6 @@ def get_enroute_weather_warnings() -> list[str]:
         response.raise_for_status()
         sigmet_data = response.json()
         result = [sigmet.get("rawSigmet", "") for sigmet in sigmet_data]
-
-        # Cache successful results
-        if result:
-            cache.set(cache_key, result)
-        return result
-    except requests.exceptions.RequestException as e:
-        print(f"Error fetching SIGMETs: {e}")
-        return []
-    except requests.exceptions.JSONDecodeError as e:
-        print(f"Error decoding SIGMET response: {e}")
-        return []
         cache.set(cache_key, result)
         return result
     except requests.exceptions.RequestException as e:
