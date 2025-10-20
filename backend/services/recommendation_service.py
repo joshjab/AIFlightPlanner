@@ -28,15 +28,20 @@ async def get_recommendation(
         """
         reasons: List[str] = []
         
-        # Get current conditions for both airports
+        # Get weather and airport conditions
         dep_weather = weather_service.get_weather_data(departure_icao)
         arr_weather = weather_service.get_weather_data(arrival_icao)
+        enroute_warnings = weather_service.get_enroute_weather_warnings()
+
+        # Get NOTAMs
+        dep_notams = notam_service.get_notams(departure_icao)
+        arr_notams = notam_service.get_notams(arrival_icao)
 
         # Process weather data into conditions
         dep_conditions = _process_weather_data(dep_weather, departure_icao)
         arr_conditions = _process_weather_data(arr_weather, arrival_icao)
 
-        # Check weather minimums against pilot preferences
+        # Check basic weather minimums
         dep_go = _check_airport_conditions(
             dep_conditions,
             pilot_preferences,
@@ -50,8 +55,23 @@ async def get_recommendation(
             reasons
         )
 
-        # Overall recommendation is "Go" only if both airports pass checks
-        return (dep_go and arr_go), reasons
+        # Check NOTAMs for critical issues
+        if dep_go:
+            dep_go = _check_notams(dep_notams, departure_icao, "Departure", reasons)
+        if arr_go:
+            arr_go = _check_notams(arr_notams, arrival_icao, "Arrival", reasons)
+
+        # Check enroute conditions
+        enroute_go = _check_enroute_conditions(
+            enroute_warnings,
+            departure_icao,
+            arrival_icao,
+            pilot_preferences,
+            reasons
+        )
+
+        # Overall recommendation is "Go" only if all checks pass
+        return (dep_go and arr_go and enroute_go), reasons
 
 def _check_airport_conditions(
     conditions: Dict,
@@ -139,6 +159,85 @@ def _check_airport_conditions(
 
     return go
 
+def _check_notams(notams: List[str], icao: str, airport_type: str, reasons: List[str]) -> bool:
+    """
+    Check NOTAMs for critical issues that would prevent flight.
+
+    Args:
+        notams: List of NOTAMs for the airport
+        icao: Airport ICAO code
+        airport_type: String indicating "Departure" or "Arrival"
+        reasons: List to append recommendation reasons to
+
+    Returns:
+        bool: True if NOTAMs don't prevent flight, False otherwise
+    """
+    go = True
+
+    critical_keywords = [
+        "CLSD",  # Airport/runway closed
+        "UNSAFE",  # Unsafe condition
+        "NOTAM A",  # Airport closed to all operations
+        "RWY UNUSABLE",  # Runway unusable
+        "NO LANDING",  # Landing not permitted
+    ]
+
+    for notam in notams:
+        for keyword in critical_keywords:
+            if keyword in notam.upper():
+                go = False
+                reasons.append(
+                    f"{airport_type} airport has critical NOTAM: {notam}"
+                )
+
+    return go
+
+def _check_enroute_conditions(
+    warnings: List[str],
+    departure_icao: str,
+    arrival_icao: str,
+    preferences: PilotPreferences,
+    reasons: List[str]
+) -> bool:
+    """
+    Check enroute conditions for potential hazards.
+
+    Args:
+        warnings: List of enroute weather warnings
+        departure_icao: Departure airport ICAO code
+        arrival_icao: Arrival airport ICAO code
+        preferences: Pilot preferences including weather tolerance
+        reasons: List to append recommendation reasons to
+
+    Returns:
+        bool: True if enroute conditions are acceptable, False otherwise
+    """
+    go = True
+
+    for warning in warnings:
+        warning_upper = warning.upper()
+        
+        # Check for thunderstorms if pilot prefers to avoid them
+        if not preferences.allow_thunderstorms_nearby and "THUNDERSTORM" in warning_upper:
+            go = False
+            reasons.append(f"Thunderstorms reported in route: {warning}")
+            
+        # Check precipitation type against preferences
+        if not preferences.allow_rain and "RAIN" in warning_upper:
+            go = False
+            reasons.append(f"Rain reported in route: {warning}")
+            
+        if not preferences.allow_snow and "SNOW" in warning_upper:
+            go = False
+            reasons.append(f"Snow reported in route: {warning}")
+            
+        # Always warn about severe conditions
+        if any(hazard in warning_upper for hazard in ["TORNADO", "HURRICANE", "SEVERE TURBULENCE"]):
+            go = False
+            reasons.append(f"Severe weather reported in route: {warning}")
+
+    return go
+
 def _process_weather_data(weather_data: Dict, icao_code: str) -> Dict:
     """
     Process raw weather data into a conditions dictionary.
@@ -219,6 +318,12 @@ if __name__ == "__main__":
         original_get_weather = weather_service.get_weather_data
 
         # Create mock weather data function
+        # Store original service functions
+        original_get_weather = weather_service.get_weather_data
+        original_get_warnings = weather_service.get_enroute_weather_warnings
+        original_get_notams = notam_service.get_notams
+
+        # Create mock weather function
         def mock_get_weather(icao: str):
             # Return good VFR conditions for KXXX and marginal VFR for KYYY
             if icao == "KXXX":
@@ -232,8 +337,30 @@ if __name__ == "__main__":
                     "taf": "KYYY 201200Z 2012/2112 09010KT 4SM BR BKN025"
                 }
 
-        # Replace the real function with our mock
+        # Create mock enroute warnings function
+        def mock_get_warnings():
+            return [
+                "AIRMET TANGO VALID UNTIL 210300 FOR TURB... MOD TURB BLW FL180",
+                "SIGMET A1 VALID 201300/201700 THUNDERSTORMS OBSD MOVING EAST 25KT"
+            ]
+
+        # Create mock NOTAMs function
+        def mock_get_notams(icao: str):
+            if icao == "KXXX":
+                return [
+                    "!KXXX 10/001 KXXX RWY 18/36 EDGE LIGHTING OTS",
+                    "!KXXX 10/002 KXXX TWY A CLSD"
+                ]
+            else:
+                return [
+                    "!KYYY 10/001 KYYY FUEL UNAVBL",
+                    "!KYYY 10/002 KYYY BIRDS VICINITY OF RWY"
+                ]
+
+        # Replace the real functions with our mocks
         weather_service.get_weather_data = mock_get_weather
+        weather_service.get_enroute_weather_warnings = mock_get_warnings
+        notam_service.get_notams = mock_get_notams
 
         try:
             # Test the service with our mock data
@@ -245,8 +372,10 @@ if __name__ == "__main__":
                 print(f"- {reason}")
         
         finally:
-            # Restore original function
+            # Restore original functions
             weather_service.get_weather_data = original_get_weather
+            weather_service.get_enroute_weather_warnings = original_get_warnings
+            notam_service.get_notams = original_get_notams
 
     # Run the test
     asyncio.run(test_recommendation_service())
