@@ -28,11 +28,11 @@
   - [x] 1.4 Create a simple `/health` endpoint in `main.py` to confirm the FastAPI application is running correctly.
 - [ ] 2.0 Implement External Data Acquisition Layer
   - [x] 2.1 In `services/weather_service.py`, create a function to fetch METARs and TAFs from the Aviation Weather Center (AWC) API.
-  - [ ] 2.2 In `services/notam_service.py`, implement web scraping for NOTAMs from notams.aim.faa.gov:
-    - [ ] 2.2.1 Set up proper request headers and session management
-    - [ ] 2.2.2 Implement form data submission for NOTAM search
-    - [ ] 2.2.3 Parse HTML response to extract structured NOTAM data
-    - [ ] 2.2.4 Add retry logic and error handling for network issues
+  - [x] 2.2 In `services/notam_service.py`, implement web scraping for NOTAMs from notams.aim.faa.gov:
+    - [x] 2.2.1 Set up proper request headers and session management
+    - [x] 2.2.2 Implement form data submission for NOTAM search
+    - [x] 2.2.3 Parse JSON response to extract structured NOTAM data
+    - [x] 2.2.4 Add retry logic and error handling for network issues
   - [ ] 2.3 In `services/weather_service.py`, add a function to fetch enroute weather warnings.
   - [ ] 2.4 Implement robust error handling and rate limiting in all service functions.
   - [ ] 2.5 In `tests/test_services.py`, write unit tests with mocked responses.
