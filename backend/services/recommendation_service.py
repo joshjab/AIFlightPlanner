@@ -5,8 +5,16 @@ pilot preferences, weather conditions, and airport information.
 from typing import Dict, List, Tuple
 import math
 
-from backend.models.pilot_preferences import PilotPreferences
+from backend.models.pilot_preferences import PilotPreferences, PilotRatings, FlightRules
 from backend.services import weather_service, airport_service, notam_service
+from backend.utils.reason_formatter import (
+    format_weather_reason,
+    format_wind_reason,
+    format_crosswind_reason,
+    format_rating_reason,
+    format_notam_reason,
+    format_enroute_reason
+)
 
 async def get_recommendation(
     departure_icao: str,
@@ -107,16 +115,26 @@ def _check_airport_conditions(
     if conditions["ceiling"] < minimums.ceiling_ft:
         go = False
         reasons.append(
-            f"{airport_type} airport ceiling {conditions['ceiling']}ft "
-            f"below pilot minimum of {minimums.ceiling_ft}ft"
+            format_weather_reason(
+                "ceiling",
+                conditions["ceiling"],
+                minimums.ceiling_ft,
+                "ft",
+                airport_type
+            )
         )
 
     # Check visibility against pilot minimums
     if conditions["visibility"] < minimums.visibility_sm:
         go = False
         reasons.append(
-            f"{airport_type} airport visibility {conditions['visibility']}SM "
-            f"below pilot minimum of {minimums.visibility_sm}SM"
+            format_weather_reason(
+                "visibility",
+                conditions["visibility"],
+                minimums.visibility_sm,
+                "SM",
+                airport_type
+            )
         )
 
     # Check wind conditions
@@ -124,8 +142,13 @@ def _check_airport_conditions(
     if conditions["wind_speed"] > max_wind:
         go = False
         reasons.append(
-            f"{airport_type} airport wind speed {conditions['wind_speed']}kts "
-            f"exceeds pilot maximum of {max_wind}kts"
+            format_wind_reason(
+                conditions["wind_speed"],
+                conditions["wind_direction"],
+                conditions.get("gust_speed"),
+                max_wind,
+                airport_type
+            )
         )
 
     # Check crosswind component if specified
@@ -138,26 +161,36 @@ def _check_airport_conditions(
         if crosswind > minimums.crosswind_component_kts:
             go = False
             reasons.append(
-                f"{airport_type} airport crosswind component {crosswind}kts "
-                f"exceeds pilot maximum of {minimums.crosswind_component_kts}kts"
+                format_crosswind_reason(
+                    crosswind,
+                    minimums.crosswind_component_kts,
+                    airport_type,
+                    conditions.get("runway", "in use")
+                )
             )
 
     # If pilot doesn't have an instrument rating but requesting IFR, that's a no-go
     if preferences.flight_rules == FlightRules.IFR and PilotRatings.INSTRUMENT not in preferences.ratings:
         go = False
         reasons.append(
-            f"IFR flight requested but pilot does not have an instrument rating"
+            format_rating_reason(
+                "IFR",
+                "an instrument rating",
+                None  # This applies to the whole flight
+            )
         )
 
     # If pilot is VFR only and conditions are not VFR, that's a no-go
     if PilotRatings.INSTRUMENT not in preferences.ratings and conditions["flight_category"] != "VFR":
         go = False
         reasons.append(
-            f"{airport_type} airport conditions are {conditions['flight_category']} "
-            "but pilot is not instrument rated"
-        )
-
-    return go
+            format_rating_reason(
+                conditions["flight_category"],
+                "an instrument rating",
+                airport_type
+            )
+        )    
+        return go
 
 def _check_notams(notams: List[str], icao: str, airport_type: str, reasons: List[str]) -> bool:
     """
@@ -186,9 +219,7 @@ def _check_notams(notams: List[str], icao: str, airport_type: str, reasons: List
         for keyword in critical_keywords:
             if keyword in notam.upper():
                 go = False
-                reasons.append(
-                    f"{airport_type} airport has critical NOTAM: {notam}"
-                )
+                reasons.append(format_notam_reason(notam, airport_type))
 
     return go
 
@@ -217,24 +248,26 @@ def _check_enroute_conditions(
     for warning in warnings:
         warning_upper = warning.upper()
         
+        warning_type = "SIGMET" if "SIGMET" in warning_upper else "AIRMET"
+        
         # Check for thunderstorms if pilot prefers to avoid them
         if not preferences.allow_thunderstorms_nearby and "THUNDERSTORM" in warning_upper:
             go = False
-            reasons.append(f"Thunderstorms reported in route: {warning}")
+            reasons.append(format_enroute_reason("thunderstorms", warning_type, warning))
             
         # Check precipitation type against preferences
         if not preferences.allow_rain and "RAIN" in warning_upper:
             go = False
-            reasons.append(f"Rain reported in route: {warning}")
+            reasons.append(format_enroute_reason("rain", warning_type, warning))
             
         if not preferences.allow_snow and "SNOW" in warning_upper:
             go = False
-            reasons.append(f"Snow reported in route: {warning}")
+            reasons.append(format_enroute_reason("snow", warning_type, warning))
             
         # Always warn about severe conditions
         if any(hazard in warning_upper for hazard in ["TORNADO", "HURRICANE", "SEVERE TURBULENCE"]):
             go = False
-            reasons.append(f"Severe weather reported in route: {warning}")
+            reasons.append(format_enroute_reason("severe weather", warning_type, warning))
 
     return go
 
