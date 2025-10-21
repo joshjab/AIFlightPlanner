@@ -2,10 +2,11 @@
 This module contains the logic for generating Go/No-Go recommendations based on
 pilot preferences, weather conditions, and airport information.
 """
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 import math
 
 from backend.models.pilot_preferences import PilotPreferences, PilotRatings, FlightRules
+from backend.services.airport_service import get_airport_by_icao
 from backend.models.weather_models import determine_flight_category, can_fly_vfr, FlightCategory
 from backend.services import weather_service, airport_service, notam_service
 from backend.utils.reason_formatter import (
@@ -516,3 +517,50 @@ if __name__ == "__main__":
 
     # Run the test
     test_recommendation_service()
+
+def calculate_route_info(departure_icao: str, destination_icao: str) -> Tuple[float, str]:
+    """
+    Calculate the distance and estimated time between two airports.
+    
+    Args:
+        departure_icao: The ICAO code for the departure airport
+        destination_icao: The ICAO code for the destination airport
+        
+    Returns:
+        Tuple containing:
+        - float: Distance in nautical miles
+        - str: Estimated time enroute in "HH:MM" format
+    """
+    dep_airport = get_airport_by_icao(departure_icao)
+    dest_airport = get_airport_by_icao(destination_icao)
+    
+    if not dep_airport or not dest_airport:
+        raise ValueError("Airport not found")
+        
+    # Convert latitude/longitude to radians
+    lat1 = math.radians(dep_airport.latitude)
+    lon1 = math.radians(dep_airport.longitude)
+    lat2 = math.radians(dest_airport.latitude)
+    lon2 = math.radians(dest_airport.longitude)
+    
+    # Haversine formula
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+    
+    a = math.sin(dlat/2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon/2)**2
+    c = 2 * math.asin(math.sqrt(a))
+    
+    # Radius of Earth in nautical miles
+    r = 3440.065  # Earth radius in nautical miles
+    
+    # Calculate distance
+    distance = round(c * r)
+    
+    # Estimate time (assuming 120 knots ground speed)
+    hours = distance / 120
+    total_minutes = int(hours * 60)
+    hrs = total_minutes // 60
+    mins = total_minutes % 60
+    estimated_time = f"{hrs:02d}:{mins:02d}"
+    
+    return distance, estimated_time
