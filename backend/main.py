@@ -3,8 +3,9 @@ from fastapi import FastAPI, HTTPException, Query
 from backend.scripts.populate_airport_data import populate_airport_data
 from backend.models.briefing import (
     BriefingRequest, BriefingResponse, NotamInfo,
-    WeatherInfo, RouteInfo
+    WeatherInfo, RouteInfo, RecommendationInfo
 )
+from backend.services import recommendation_service
 from backend.services.notam_service import get_notams, NotamServiceError
 from backend.services.weather_service import get_weather_data, get_enroute_weather_warnings
 from backend.services.airport_service import get_airport_by_icao
@@ -49,6 +50,7 @@ def get_notams_endpoint(icao_code: str):
 def get_briefing(
     departure: str = Query(..., min_length=4, max_length=4, description="Departure airport ICAO code"),
     destination: str = Query(..., min_length=4, max_length=4, description="Destination airport ICAO code"),
+    pilot_preferences: dict = Query(None, description="Optional pilot preferences for Go/No-Go"),
 ):
     """
     Get a comprehensive briefing for a flight between two airports.
@@ -81,28 +83,71 @@ def get_briefing(
         dep_notams = get_notams(departure)
         dest_notams = get_notams(destination)
 
-        # Get distance and estimated time (basic calculation for now)
-        distance = 100  # TODO: Calculate actual distance
-        time = "1:00"  # TODO: Calculate actual time
+        # Get route information and recommendation
+        distance, estimated_time = recommendation_service.calculate_route_info(departure, destination)
+        go_nogo, reasons = recommendation_service.get_recommendation(
+            departure,
+            destination,
+            pilot_preferences
+        )
 
         print("Building response...")
         print(f"Weather data: dep={dep_weather}, dest={dest_weather}")
         print(f"NOTAM data: dep={dep_notams}, dest={dest_notams}")
+
+        # Create recommendation info if pilot preferences were provided
+        recommendation_info = None
+        if pilot_preferences:
+            recommendation_info = RecommendationInfo(
+                recommendation=go_nogo,
+                reasons=reasons
+            )
 
         response = BriefingResponse(
             route=RouteInfo(
                 departure=departure,
                 destination=destination,
                 distance=distance,
-                estimated_time_enroute=time
+                estimated_time_enroute=estimated_time
             ),
             weather={
                 "departure": WeatherInfo(**dep_weather),
                 "destination": WeatherInfo(**dest_weather)
             },
+            recommendation=recommendation_info,
             notams={
-                "departure": [NotamInfo(id=n["id"], text=n["text"]) for n in dep_notams],
-                "destination": [NotamInfo(id=n["id"], text=n["text"]) for n in dest_notams]
+                "departure": [NotamInfo(
+                    number=n["number"],
+                    type=n["type"],
+                    issued=n["issued"],
+                    start_date=n.get("start_date"),
+                    end_date=n.get("end_date"),
+                    status=n["status"],
+                    icao_message=n.get("icao_message"),
+                    traditional_message=n.get("traditional_message"),
+                    plain_language_message=n.get("plain_language_message"),
+                    facility=n["facility"],
+                    icao_id=n["icao_id"],
+                    airport_name=n["airport_name"],
+                    keyword=n["keyword"],
+                    cancelled_or_expired=n["cancelled_or_expired"]
+                ) for n in dep_notams],
+                "destination": [NotamInfo(
+                    number=n["number"],
+                    type=n["type"],
+                    issued=n["issued"],
+                    start_date=n.get("start_date"),
+                    end_date=n.get("end_date"),
+                    status=n["status"],
+                    icao_message=n.get("icao_message"),
+                    traditional_message=n.get("traditional_message"),
+                    plain_language_message=n.get("plain_language_message"),
+                    facility=n["facility"],
+                    icao_id=n["icao_id"],
+                    airport_name=n["airport_name"],
+                    keyword=n["keyword"],
+                    cancelled_or_expired=n["cancelled_or_expired"]
+                ) for n in dest_notams]
             }
         )
         print(f"Response built: {response}")

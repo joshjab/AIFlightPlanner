@@ -35,8 +35,38 @@ def mock_weather_data(mock_metar, mock_taf):
 @pytest.fixture
 def mock_notams():
     return [
-        {"id": "NOTAM1", "text": "Test NOTAM 1"},
-        {"id": "NOTAM2", "text": "Test NOTAM 2"}
+        {
+            "number": "NOTAM1",
+            "type": "Aerodrome",
+            "issued": "2025-10-21T09:00:00",
+            "start_date": "2025-10-21T09:00:00",
+            "end_date": "2025-10-22T09:00:00",
+            "status": "Active",
+            "icao_message": "Test ICAO message 1",
+            "traditional_message": "Test traditional message 1",
+            "plain_language_message": "Test plain language message 1",
+            "facility": "TEST",
+            "icao_id": "KXXX",
+            "airport_name": "Test Airport",
+            "keyword": "RWY",
+            "cancelled_or_expired": False
+        },
+        {
+            "number": "NOTAM2",
+            "type": "Aerodrome",
+            "issued": "2025-10-21T09:00:00",
+            "start_date": "2025-10-21T09:00:00",
+            "end_date": None,
+            "status": "Active",
+            "icao_message": "Test ICAO message 2",
+            "traditional_message": "Test traditional message 2",
+            "plain_language_message": "Test plain language message 2",
+            "facility": "TEST",
+            "icao_id": "KXXX",
+            "airport_name": "Test Airport",
+            "keyword": "TWY",
+            "cancelled_or_expired": False
+        }
     ]
 
 @pytest.fixture
@@ -91,8 +121,8 @@ def test_briefing_endpoint_success(mock_weather_data, mock_notams, mock_airport_
         # Check NOTAMs
         assert len(data["notams"]["departure"]) == len(mock_notams)
         assert len(data["notams"]["destination"]) == len(mock_notams)
-        assert data["notams"]["departure"][0]["id"] == mock_notams[0]["id"]
-        assert data["notams"]["destination"][0]["id"] == mock_notams[0]["id"]
+        assert data["notams"]["departure"][0]["number"] == mock_notams[0]["number"]
+        assert data["notams"]["destination"][0]["number"] == mock_notams[0]["number"]
 
         # Check route info
         assert data["route"]["departure"] == "KXXX"
