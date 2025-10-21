@@ -30,6 +30,19 @@ def get_notams_endpoint(icao_code: str):
         notams = get_notams(icao_code)
         return notams
     except NotamServiceError as e:
+        raise HTTPException(status_code=503, detail=f"NOTAM service error: {str(e)}")
+    except HTTPException as e:
+        # Re-raise HTTP exceptions with their original status code
+        raise e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+@app.get("/notams/{icao_code}")
+def get_notams_endpoint(icao_code: str):
+    try:
+        notams = get_notams(icao_code)
+        return notams
+    except NotamServiceError as e:
         raise HTTPException(status_code=503, detail=str(e))
 
 @app.get("/api/briefing", response_model=BriefingResponse)

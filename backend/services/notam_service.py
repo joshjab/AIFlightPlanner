@@ -109,7 +109,25 @@ class NotamSession:
     def is_initialized(self) -> bool:
         """Check if the session has been properly initialized."""
         return self._initialized
+    
+def _parse_notam_date(date_str: Optional[str]) -> Optional[str]:
+    """Safely parses NOTAM date string, handling 'PERM' and other edge cases."""
+    if not date_str:
+        return None
+    
+    # Clean the string (e.g., "10/20/2025 1200 EST")
+    cleaned_str = date_str.split('EST')[0].strip()
+    
+    if cleaned_str == "PERM":
+        return None  # A permanent NOTAM has no end date, so None is appropriate
 
+    try:
+        return datetime.strptime(cleaned_str, "%m/%d/%Y %H%M").isoformat()
+    except ValueError:
+        # Log the error but continue
+        logger.warning(f"Could not parse NOTAM date string: {date_str}")
+        return None
+    
 # Create a global session instance
 _notam_session = NotamSession()
 
@@ -200,9 +218,9 @@ def get_notams(icao_code: str) -> List[Dict[str, Any]]:
         result = []
         for notam in data.get('notamList', []):
             # Convert dates to standardized format
-            issue_date = datetime.strptime(notam['issueDate'], "%m/%d/%Y %H%M").isoformat() if notam.get('issueDate') else None
-            start_date = datetime.strptime(notam['startDate'], "%m/%d/%Y %H%M").isoformat() if notam.get('startDate') else None
-            end_date = datetime.strptime(notam['endDate'].split('EST')[0].strip(), "%m/%d/%Y %H%M").isoformat() if notam.get('endDate') else None
+            issue_date = _parse_notam_date(notam.get('issueDate'))
+            start_date = _parse_notam_date(notam.get('startDate'))
+            end_date = _parse_notam_date(notam.get('endDate'))
             
             notam_data = {
                 'number': notam.get('notamNumber', ''),
