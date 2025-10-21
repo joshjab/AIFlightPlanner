@@ -4,6 +4,8 @@ Unit tests for the FastAPI endpoints
 import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import patch, Mock
+from backend.schemas import Airport
+from backend.services.notam_service import NotamServiceError
 
 from backend.main import app
 
@@ -16,10 +18,18 @@ def test_health_endpoint():
     assert response.json() == {"status": "ok"}
 
 @pytest.fixture
-def mock_weather_data():
+def mock_metar():
+    return "KXXX 201753Z 18010KT 10SM FEW050 25/15 A2992"
+
+@pytest.fixture
+def mock_taf():
+    return "KXXX 201700Z 2018/2118 18012KT P6SM FEW050"
+
+@pytest.fixture
+def mock_weather_data(mock_metar, mock_taf):
     return {
-        "metar": "KXXX 201753Z 18010KT 10SM FEW050 25/15 A2992",
-        "taf": "KXXX 201700Z 2018/2118 18012KT P6SM FEW050"
+        "metar": mock_metar,
+        "taf": mock_taf
     }
 
 @pytest.fixture
@@ -45,13 +55,25 @@ def test_briefing_endpoint_success(mock_weather_data, mock_notams, mock_airport_
     dep_details = mock_airport_details.copy()
     dest_details = mock_airport_details.copy()
     dest_details["icao"] = "KYYY"
-    
+
+    # Create mock Airport objects
+    mock_dep_airport = Mock()
+    mock_dep_airport.to_dict.return_value = dep_details
+    mock_dest_airport = Mock()
+    mock_dest_airport.to_dict.return_value = dest_details
+
+    # Create mock database session
+    mock_session = Mock()
+    mock_session.query.return_value.filter.return_value.first.side_effect = lambda: mock_dep_airport if mock_session.query.call_args[0][0] == Airport and mock_session.query.return_value.filter.call_args[0][0].right.value == "KXXX" else mock_dest_airport
+
     with (
         patch('backend.services.weather_service.get_weather_data', return_value=mock_weather_data),
         patch('backend.services.notam_service.get_notams', return_value=mock_notams),
-        patch('backend.services.airport_service.get_airport_by_icao', side_effect=lambda x: dep_details if x == "KXXX" else dest_details)
+        patch('backend.services.airport_service.SessionLocal', return_value=mock_session)
     ):
         response = client.get("/api/briefing?departure=KXXX&destination=KYYY")
+        if response.status_code != 200:
+            print(f"Error response: {response.json()}")
         assert response.status_code == 200
         data = response.json()
         
@@ -84,8 +106,12 @@ def test_briefing_endpoint_invalid_airport():
 
 def test_briefing_endpoint_airport_not_found(mock_weather_data, mock_notams):
     """Test briefing when airport is not found"""
+    # Mock session that returns None for any airport query
+    mock_session = Mock()
+    mock_session.query.return_value.filter.return_value.first.return_value = None
+
     with (
-        patch('backend.services.airport_service.get_airport_by_icao', return_value=None),
+        patch('backend.services.airport_service.SessionLocal', return_value=mock_session),
         patch('backend.services.weather_service.get_weather_data', return_value=mock_weather_data),
         patch('backend.services.notam_service.get_notams', return_value=mock_notams)
     ):
@@ -93,12 +119,21 @@ def test_briefing_endpoint_airport_not_found(mock_weather_data, mock_notams):
         assert response.status_code == 404
         assert "Airport not found" in response.json()["detail"]
 
-def test_briefing_endpoint_service_error(mock_airport_details):
+def test_briefing_endpoint_service_error(mock_airport_details, mock_weather_data):
     """Test briefing when a service fails"""
+    # Create mock Airport object
+    mock_airport = Mock()
+    mock_airport.to_dict.return_value = mock_airport_details
+
+    # Mock session that returns a valid airport
+    mock_session = Mock()
+    mock_session.query.return_value.filter.return_value.first.return_value = mock_airport
+
     with (
-        patch('backend.services.airport_service.get_airport_by_icao', return_value=mock_airport_details),
-        patch('backend.services.notam_service.get_notams', side_effect=Exception("NOTAM service down"))
+        patch('backend.services.airport_service.SessionLocal', return_value=mock_session),
+        patch('backend.services.weather_service.get_weather_data', return_value=mock_weather_data),
+        patch('backend.services.notam_service.get_notams', side_effect=NotamServiceError("NOTAM service down"))
     ):
         response = client.get("/api/briefing?departure=KXXX&destination=KYYY")
-        assert response.status_code == 500
-        assert "Internal server error" in response.json()["detail"]
+        assert response.status_code == 503  # Service unavailable for NOTAM errors
+        assert "NOTAM service error" in response.json()["detail"]
