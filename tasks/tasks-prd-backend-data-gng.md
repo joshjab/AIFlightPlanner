@@ -57,7 +57,11 @@
   - [X] 4.6 Implement weather minimums validation based on flight rules (VFR/IFR).
   - [ ] 4.7 Create route-based weather analysis functionality.
 - [ ] 5.0 Build and Integrate Frontend with `/api/briefing` Endpoint
+<<<<<<< HEAD
   - [x] 5.1 In `main.py`, define the `GET /api/briefing` endpoint.
+=======
+  - [ ] 5.1 In `main.py`, define the `GET /api/briefing` endpoint.
+>>>>>>> fa96b9eeaef28b1345f77ca7b7950f3a78c00581
   - [ ] 5.2 In the endpoint logic, orchestrate calls to all services.
   - [ ] 5.3 Structure the JSON response for the frontend.
   - [ ] 5.4 In `tests/test_main.py`, write integration tests.
