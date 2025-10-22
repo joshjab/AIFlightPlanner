@@ -102,21 +102,27 @@ def format_rating_reason(
         )
     return f"This flight requires {required_rating} privileges due to {category} conditions"
 
-def format_notam_reason(notam: str, airport_type: str) -> str:
+def format_notam_reason(notam: dict, airport_type: str, level: str = "Critical") -> str:
     """
-    Format a NOTAM-related reason, highlighting critical information.
+    Formats a NOTAM dictionary into a reason string.
 
     Args:
-        notam: The raw NOTAM text
-        airport_type: "Departure" or "Arrival"
-
-    Returns:
-        A formatted string explaining the NOTAM's impact
+        notam: The NOTAM dictionary.
+        airport_type: "Departure" or "Arrival".
+        level: "Critical" or "Info".
     """
-    # Extract the condition part of the NOTAM (after the ID)
-    condition = notam.split(" ", 2)[2] if len(notam.split(" ")) > 2 else notam
+    try:
+        notam_text = notam['traditional_message']
+    except KeyError:
+        notam_text = "Message not available"
     
-    return f"{airport_type} airport has a critical NOTAM: {condition}"
+    # Get the main condition text
+    condition = notam_text.split(" ", 2)[2] if len(notam_text.split(" ")) > 2 else notam_text
+    
+    # Set the prefix based on the level
+    prefix = "Critical NOTAM" if level == "Critical" else "Info NOTAM"
+
+    return f"{airport_type} airport has {prefix}: {condition}"
 
 def format_enroute_reason(
     condition: str,

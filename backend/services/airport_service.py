@@ -1,3 +1,4 @@
+from typing import List, Set, Dict, Any, Union
 from sqlalchemy.orm import Session
 from backend.schemas import Airport
 from backend.database import SessionLocal, engine, Base
@@ -32,6 +33,56 @@ def get_airport_by_icao(icao_code: str) -> dict:
         return airport.to_dict() if airport else None
     finally:
         db.close()
+
+def get_runway_idents(runway_data: Union[str, List[Dict[str, Any]]]) -> Set[str]:
+    """
+    Extracts individual runway identifiers from the airport's runway data.
+
+    This function can handle two formats:
+    1. A single string: "04L/22R, 04R/22L, 13L/31R, 13R/31L"
+    2. A list of dicts: [{'ident': '04L/22R'}, {'ident': '04R/22L'}]
+    
+    Args:
+        runway_data: The 'runways' field from the airport dictionary.
+
+    Returns:
+        A set of all individual runway identifiers (e.g., {'04L', '22R'}).
+    """
+    idents = set()
+    
+    # --- NEW: Handle string format ---
+    if isinstance(runway_data, str):
+        # runway_data is "04L/22R, 04R/22L, 13L/31R, 13R/31L"
+        runway_pairs = runway_data.split(',')
+        for pair in runway_pairs:
+            # pair is "04L/22R"
+            parts = pair.split('/')
+            for part in parts:
+                part = part.strip()
+                if part:
+                    idents.add(part)
+
+    # --- Original logic for list of dicts ---
+    elif isinstance(runway_data, list):
+        for rwy in runway_data:
+            if not isinstance(rwy, dict):
+                continue  # Skip invalid entries
+                
+            # We assume the identifier key is 'ident'.
+            name = rwy.get('ident') 
+            if not name or not isinstance(name, str):
+                continue
+            
+            # Split '09L/27R' into ['09L', '27R']
+            parts = name.split('/')
+            for part in parts:
+                part = part.strip()
+                if part:
+                    idents.add(part)
+            
+    # For KJFK, this will now correctly return:
+    # {'04L', '22R', '04R', '22L', '13L', '31R', '13R', '31L'}
+    return idents
 
 if __name__ == "__main__":
     print("--- Testing Airport Service ---")

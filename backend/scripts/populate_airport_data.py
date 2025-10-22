@@ -35,12 +35,9 @@ def populate_airport_data():
             print("No airport data found. Populating for the first time.")
             should_update = True
         else:
-            age_in_months = (datetime.now() - latest_update).days / 30.44 # Approximate months
-            if age_in_months >= DATA_FRESHNESS_THRESHOLD_MONTHS:
-                print(f"Airport data is {age_in_months:.1f} months old. Updating data.")
-                should_update = True
-            else:
-                print(f"Airport data is fresh ({age_in_months:.1f} months old). No update needed.")
+            # Force update to fix missing coordinates
+            print("Forcing update to add missing coordinates.")
+            should_update = True
 
         if should_update:
             # 1. Download data
@@ -102,6 +99,8 @@ def populate_airport_data():
                     # Update existing airport
                     airport.name = row['name']
                     airport.elevation = str(row['elevation']) if row['elevation'] is not None else None
+                    airport.latitude = row['latitude']
+                    airport.longitude = row['longitude']
                     airport.runways = row['runways']
                     airport.last_updated = update_time
                     updated_count += 1
@@ -111,6 +110,8 @@ def populate_airport_data():
                         icao_code=icao,
                         name=row['name'],
                         elevation=str(row['elevation']) if row['elevation'] is not None else None,
+                        latitude=row['latitude'],
+                        longitude=row['longitude'],
                         runways=row['runways'],
                         last_updated=update_time
                     )

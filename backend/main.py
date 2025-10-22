@@ -1,3 +1,4 @@
+import json
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Query
 from backend.scripts.populate_airport_data import populate_airport_data
@@ -5,6 +6,7 @@ from backend.models.briefing import (
     BriefingRequest, BriefingResponse, NotamInfo,
     WeatherInfo, RouteInfo, RecommendationInfo
 )
+from backend.models.pilot_preferences import PilotPreferences
 from backend.services import recommendation_service
 from backend.services.notam_service import get_notams, NotamServiceError
 from backend.services.weather_service import get_weather_data, get_enroute_weather_warnings
@@ -47,10 +49,10 @@ def get_notams_endpoint(icao_code: str):
         raise HTTPException(status_code=503, detail=str(e))
 
 @app.get("/api/briefing", response_model=BriefingResponse)
-def get_briefing(
+async def get_briefing(
     departure: str = Query(..., min_length=4, max_length=4, description="Departure airport ICAO code"),
     destination: str = Query(..., min_length=4, max_length=4, description="Destination airport ICAO code"),
-    pilot_preferences: dict = Query(None, description="Optional pilot preferences for Go/No-Go"),
+    pilot_preferences: str = Query(None, description="Optional pilot preferences for Go/No-Go as JSON string"),
 ):
     """
     Get a comprehensive briefing for a flight between two airports.
@@ -58,12 +60,27 @@ def get_briefing(
     Args:
         departure: Departure airport ICAO code
         destination: Destination airport ICAO code
+        pilot_preferences: Optional JSON string containing pilot preferences
         
     Returns:
-        BriefingResponse containing weather, NOTAMs, and route information
+        BriefingResponse containing weather, NOTAMs, route information, and recommendations
+    
+    Raises:
+        HTTPException: For various error conditions including missing airports and coordinates
     """
     print(f"Processing briefing request for {departure} to {destination}")
     try:
+        # Parse pilot preferences if provided
+        preferences_obj = None
+        if pilot_preferences:
+            try:
+                preferences_dict = json.loads(pilot_preferences)
+                preferences_obj = PilotPreferences(**preferences_dict)
+            except json.JSONDecodeError:
+                raise HTTPException(status_code=400, detail="Invalid pilot preferences JSON format")
+            except ValueError as e:
+                raise HTTPException(status_code=400, detail=f"Invalid pilot preferences: {str(e)}")
+        
         print("Fetching airport details...")
         # Get departure and destination details
         dep_details = get_airport_by_icao(departure)
@@ -84,20 +101,24 @@ def get_briefing(
         dest_notams = get_notams(destination)
 
         # Get route information and recommendation
-        distance, estimated_time = recommendation_service.calculate_route_info(departure, destination)
+        try:
+            distance, estimated_time = recommendation_service.calculate_route_info(departure, destination)
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+            
         go_nogo, reasons = recommendation_service.get_recommendation(
             departure,
             destination,
-            pilot_preferences
+            preferences_obj
         )
 
         print("Building response...")
         print(f"Weather data: dep={dep_weather}, dest={dest_weather}")
-        print(f"NOTAM data: dep={dep_notams}, dest={dest_notams}")
+        #print(f"NOTAM data: dep={dep_notams}, dest={dest_notams}")
 
         # Create recommendation info if pilot preferences were provided
         recommendation_info = None
-        if pilot_preferences:
+        if preferences_obj:
             recommendation_info = RecommendationInfo(
                 recommendation=go_nogo,
                 reasons=reasons
@@ -150,7 +171,7 @@ def get_briefing(
                 ) for n in dest_notams]
             }
         )
-        print(f"Response built: {response}")
+        #print(f"Response built: {response}")
         return response
     except NotamServiceError as e:
         raise HTTPException(status_code=503, detail=f"NOTAM service error: {str(e)}")
