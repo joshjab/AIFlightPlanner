@@ -1,12 +1,20 @@
 import json
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException, Query
+from typing import List, Optional
+from fastapi import FastAPI, HTTPException, Query, Depends  
+from fastapi.middleware.cors import CORSMiddleware 
+from sqlalchemy.orm import Session 
+
 from backend.scripts.populate_airport_data import populate_airport_data
 from backend.models.briefing import (
     BriefingRequest, BriefingResponse, NotamInfo,
     WeatherInfo, RouteInfo, RecommendationInfo
 )
 from backend.models.pilot_preferences import PilotPreferences
+
+from backend.schemas import Airport
+from backend.database import SessionLocal, engine, Base
+
 from backend.services import recommendation_service
 from backend.services.notam_service import get_notams, NotamServiceError
 from backend.services.weather_service import get_weather_data, get_enroute_weather_warnings
@@ -22,6 +30,20 @@ async def lifespan(app: FastAPI):
     print("Application shutdown.")
 
 app = FastAPI(lifespan=lifespan)
+
+origins = [
+    "http://localhost:5173",  # Your React dev server
+    "http://127.0.0.1:5173",
+    "https://flightplan.joshjab.com/"
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,  # Allows specific origins
+    allow_credentials=True,
+    allow_methods=["*"],    # Allows all methods (GET, POST, etc.)
+    allow_headers=["*"],    # Allows all headers
+)
 
 @app.get("/health")
 def read_health():
@@ -40,13 +62,51 @@ def get_notams_endpoint(icao_code: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
-@app.get("/notams/{icao_code}")
-def get_notams_endpoint(icao_code: str):
+# --- Removed duplicate /notams/{icao_code} endpoint ---
+
+# --- NEW ENDPOINT ---
+@app.get("/api/airports_all", response_model=List[str])
+async def get_all_airport_icaos():
+    """
+    Fetches a list of all airport ICAO codes from the database.
+    """
+    db = SessionLocal()
     try:
-        notams = get_notams(icao_code)
-        return notams
-    except NotamServiceError as e:
-        raise HTTPException(status_code=503, detail=str(e))
+        # Query for all icao_code entries and order them
+        airports = db.query(Airport.icao_code).order_by(Airport.icao_code).all()
+        
+        # airports will be a list of tuples, e.g., [('KJFK',), ('KLAX',)]
+        # Convert it to a simple list of strings
+        return [icao for (icao,) in airports]
+    except Exception as e:
+        print(f"Error fetching airport list: {e}")
+        # Handle potential database errors
+        raise HTTPException(status_code=500, detail="Internal server error fetching airport list")
+    
+
+@app.get("/api/airports", response_model=List[str])
+async def get_airport_icaos(
+    q: Optional[str] = Query(None, min_length=1, max_length=4, description="Search query for ICAO code")
+):
+    """
+    Fetches a list of airport ICAO codes from the database,
+    optionally filtered by a search query.
+    """
+    db = SessionLocal()
+    try:
+        query = db.query(Airport.icao_code)
+        if q:
+            # Filter codes starting with the query (case-insensitive)
+            search_pattern = f"{q.upper()}%"
+            query = query.filter(Airport.icao_code.like(search_pattern))
+            
+        # Limit results for performance
+        airports = query.order_by(Airport.icao_code).limit(20).all()
+        
+        return [icao for (icao,) in airports]
+    except Exception as e:
+        print(f"Error fetching airport list: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error fetching airport list")
 
 @app.get("/api/briefing", response_model=BriefingResponse)
 async def get_briefing(

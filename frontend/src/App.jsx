@@ -10,26 +10,51 @@ import GoNoGoRecommendation from './components/GoNoGoRecommendation';
 import AcknowledgeButton from './components/AcknowledgeButton';
 import { MOCK_BRIEFING_DATA } from './utils/mockData';
 
+const defaultPreferences = {
+  ratings: ['PRIVATE'],
+  flight_rules: 'VFR',
+  day_minimums: {
+    visibility_sm: 5.0,
+    ceiling_ft: 3000,
+    wind_speed_kts: 20,
+    crosswind_component_kts: 10,
+  },
+  night_minimums: {
+    visibility_sm: 7.0,
+    ceiling_ft: 5000,
+    wind_speed_kts: 15,
+    crosswind_component_kts: 8,
+  },
+};
+
 function App() {
   const [departure, setDeparture] = useState('');
   const [destination, setDestination] = useState('');
   const [isDepartureValid, setIsDepartureValid] = useState(false);
   const [isDestinationValid, setIsDestinationValid] = useState(false);
+
   const [preferences, setPreferences] = useState(() => {
     const savedPrefs = localStorage.getItem('flightPlannerPrefs');
-    return savedPrefs ? JSON.parse(savedPrefs) : {};
+    if (savedPrefs) {
+      try {
+        const parsed = JSON.parse(savedPrefs);
+        // Deep merge with defaults to handle missing keys
+        return {
+          ratings: parsed.ratings || defaultPreferences.ratings,
+          flight_rules: parsed.flight_rules || defaultPreferences.flight_rules,
+          day_minimums: { ...defaultPreferences.day_minimums, ...(parsed.day_minimums || {}) },
+          night_minimums: { ...defaultPreferences.night_minimums, ...(parsed.night_minimums || {}) },
+        };
+      } catch (e) {
+        console.error("Failed to parse saved preferences, using defaults:", e);
+      }
+    }
+    return defaultPreferences;
   });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showBriefing, setShowBriefing] = useState(false);
   const [briefingAcknowledged, setBriefingAcknowledged] = useState(false);
-  const [canAcknowledge, setCanAcknowledge] = useState(false);
 
-  useEffect(() => {
-    if (showBriefing) {
-      const timer = setTimeout(() => setCanAcknowledge(true), 5000); // 5 seconds to review
-      return () => clearTimeout(timer);
-    }
-  }, [showBriefing]);
 
   function handleSavePreferences(newPrefs) {
     setPreferences(newPrefs);
@@ -39,6 +64,7 @@ function App() {
 
   function handlePlanFlight() {
     if (departure && destination && isDepartureValid && isDestinationValid) {
+      setBriefingAcknowledged(false); // Reset acknowledgment for new briefing
       setShowBriefing(true);
     }
   }
@@ -76,14 +102,12 @@ function App() {
           label="Departure Airport (ICAO)"
           value={departure}
           onChange={setDeparture}
-          icaoList={ICAO_CODES}
           onValidationChange={setIsDepartureValid}
         />
         <IcaoSelect
           label="Destination Airport (ICAO)"
           value={destination}
           onChange={setDestination}
-          icaoList={ICAO_CODES}
           onValidationChange={setIsDestinationValid}
         />
         <div className="button-container">
@@ -91,7 +115,7 @@ function App() {
             Plan Flight
           </button>
           <SurpriseMeButton
-            icaoList={ICAO_CODES}
+            //icaoList={icaoList} // Pass the fetched list
             departure={departure}
             onSurprise={setDestination}
           />
@@ -104,10 +128,13 @@ function App() {
 
       {showBriefing && (
         <>
-          <GoNoGoRecommendation briefing={MOCK_BRIEFING_DATA} />
+          {/* GoNoGoRecommendation is no longer here. 
+              BriefingDisplay now renders it internally.
+           */}
           <BriefingDisplay
             departure={departure}
             destination={destination}
+            pilotPreferences={preferences} // Pass the preferences object
             onAcknowledge={handleAcknowledge}
             briefingAcknowledged={briefingAcknowledged}
           />
@@ -119,7 +146,7 @@ function App() {
         onClose={() => setIsModalOpen(false)}
         onSave={handleSavePreferences}
         initialPrefs={preferences}
-        icaoList={ICAO_CODES}
+        //icaoList={icaoList} // Pass the fetched list
       />
     </div>
   );

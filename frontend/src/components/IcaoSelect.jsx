@@ -1,30 +1,51 @@
 import React, { useState, useId, useEffect } from 'react';
-import { isValidIcao } from '../utils/icaoList';
+import { getFilteredAirports } from '../services/apiService'; 
 import './IcaoSelect.css';
 
-export default function IcaoSelect({ label, value, onChange, icaoList, onValidationChange }) {
+
+export default function IcaoSelect({ label, value, onChange, onValidationChange }) {
   const [input, setInput] = useState(value || '');
   const [touched, setTouched] = useState(false);
+  const [options, setOptions] = useState([]); // State for filtered options
   const inputId = useId();
-
-  // Sync input state with value prop
+// --- Debounce Effect for Fetching ---
   useEffect(() => {
-    setInput(value || '');
-  }, [value]);
+    // Don't fetch if input is too short
+    if (input.length < 1) {
+       setOptions([]);
+       return;
+    }
 
-  // Filter ICAO list based on input
-  const filteredList = icaoList.filter(code =>
-    code.toLowerCase().includes(input.toLowerCase())
-  );
+    // Set up a timer
+    const debounceTimer = setTimeout(async () => {
+      const filtered = await getFilteredAirports(input);
+      setOptions(filtered);
+    }, 300); // Wait 300ms after user stops typing
 
-  const isValid = isValidIcao(input);
-  const showError = touched && input && !isValid;
+    // Cleanup function to cancel the timer if user types again
+    return () => clearTimeout(debounceTimer);
 
+  }, [input]); // Re-run effect when input changes
+
+
+  // --- Validation Logic ---
+  // An input is valid if it's exactly 4 chars and exists in the *current* options
+  // (This implies the backend search returned it as an exact match)
+  const isValid = input.length === 4 && options.includes(input);
+  const showError = touched && input && !isValid && input.length >= 4; // Only show error for 4 chars
+
+  // Notify parent about validation status
   useEffect(() => {
     if (onValidationChange) {
       onValidationChange(isValid);
     }
   }, [isValid, onValidationChange]);
+
+  // Sync input state if parent value changes externally
+  useEffect(() => {
+    setInput(value || '');
+  }, [value]);
+
 
   return (
     <div className="icao-select-container">
@@ -34,27 +55,30 @@ export default function IcaoSelect({ label, value, onChange, icaoList, onValidat
       <input
         id={inputId}
         type="text"
-        list="icao-options"
+        list={`icao-options-${inputId}`} // Use unique ID for datalist
         value={input}
         onChange={e => {
-          setInput(e.target.value.toUpperCase());
-          onChange(e.target.value.toUpperCase());
+          const upperVal = e.target.value.toUpperCase();
+          setInput(upperVal);
+          onChange(upperVal); // Notify parent immediately
         }}
         onBlur={() => setTouched(true)}
-        placeholder="Enter or select ICAO code"
+        placeholder="Enter ICAO code (e.g., KMDQ)"
         autoComplete="off"
+        maxLength={4} // Limit input length
         className={showError ? 'icao-input error' : 'icao-input'}
       />
-      <datalist id="icao-options">
-        {filteredList.map(code => (
+      {/* Datalist now uses the fetched options */}
+      <datalist id={`icao-options-${inputId}`}>
+        {options.map(code => (
           <option value={code} key={code} />
         ))}
       </datalist>
       {showError && (
-        <div style={{ color: 'var(--color-error)', fontSize: '0.95em', marginTop: 2 }}>
-          Invalid ICAO code
+        <div className="error-text">
+          Invalid or unknown ICAO code
         </div>
       )}
     </div>
   );
-}
+};
