@@ -8,7 +8,7 @@ export const getFilteredAirports = async (query) => {
     return []; // Don't search for empty strings
   }
   // Use absolute URL
-  const url = `http://127.0.0.1:8003/api/airports?q=${query.toUpperCase()}`;
+  const url = `/api/airports?q=${query.toUpperCase()}`;
   const response = await fetch(url);
   if (!response.ok) {
     console.error("Failed to fetch filtered airports");
@@ -25,7 +25,7 @@ export const getBriefing = async (departure, destination, pilotPreferences) => {
   const encodedPrefs = encodeURIComponent(prefsJson);
 
   // 3. Use the correct endpoint and query parameters from your example
-  const url = `http://127.0.0.1:8003/api/briefing?departure=${departure}&destination=${destination}&pilot_preferences=${encodedPrefs}`;
+  const url = `/api/briefing?departure=${departure}&destination=${destination}&pilot_preferences=${encodedPrefs}`;
 
   const response = await fetch(url);
   

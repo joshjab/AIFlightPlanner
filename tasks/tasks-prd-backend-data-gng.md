@@ -61,8 +61,8 @@
   - [X] 5.2 In the endpoint logic, orchestrate calls to all services.
   - [X] 5.3 Structure the JSON response for the frontend.
   - [X] 5.4 In `tests/test_main.py`, write integration tests.
-  - [ ] 5.5 Update `BriefingDisplay.jsx` to use live data.
-  - [ ] 5.6 Update frontend components for live data display.
+  - [X] 5.5 Update `BriefingDisplay.jsx` to use live data.
+  - [X] 5.6 Update frontend components for live data display.
 - [ ] 6.0 Error Handling and Logging
   - [ ] 6.1 Implement structured logging across all services
   - [ ] 6.2 Create standardized error responses
@@ -75,3 +75,15 @@
   - [ ] 8.1 Implement METAR/TAF parsing for human-readable format
   - [ ] 8.2 Add flight category determination (VFR/MVFR/IFR/LIFR)
   - [ ] 8.3 Create weather trend analysis for route planning
+
+# New Features
+ - [ ] Route based weather briefing
+ - [ ] Recommended stops and stop time calculations
+ - [ ] Surprise Me! Is location-based
+ - [ ] Clean up briefing display for UX- "decode" NOTAMs/Wx for easier reading, dropdowns for sections
+ - [ ] Airport Information is part of briefing
+ - [ ] Checkbox for each area of the briefing
+ - [ ] Movable Map Display in briefing, to include stops
+ - [ ] Logic to get nearby weather if airport has no METAR or TAF
+ - [ ] AI Chat with briefing
+ - [ ] Rental cost calculator
