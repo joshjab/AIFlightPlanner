@@ -11,6 +11,7 @@ services:
     volumes:
       # Mount the backend folder for hot-reloading code changes
       - ./backend:/app/backend
+      - ./sql_app.db:/app/sql_app.db
     environment:
       PYTHONUNBUFFERED: 1
     # No port expose needed, handled by frontend

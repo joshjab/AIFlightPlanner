@@ -35,9 +35,45 @@ The frontend is a minimal, mobile-friendly single-page application with the foll
 
 ## Getting Started
 
-Follow these instructions to run the application on your local machine.
+This project is designed to run as a set of Docker containers. A legacy local development setup is also documented.
 
-### Backend
+### Prerequisites
+
+* **Docker & Docker Compose:** Required for the container-based setup.
+* **Python 3.11+:** Required only for legacy local backend development.
+* **Node.js v20+:** Required only for legacy local frontend development.
+
+### Docker Deployment (Recommended)
+This is the simplest and most reliable way to run the full application.  
+It builds and runs the production frontend and backend services.
+
+#### One-Time Database Setup
+
+The application requires a pre-built **SQLite database file (`sql_app.db`)** to run.  
+This file is resource-intensive to create and must be built manually before starting the application.
+
+#### Configure the Backend
+
+Ensure the database URL in `backend/database.py` (or similar) is set to:
+
+```python
+DATABASE_URL = "sqlite:///./sql_app.db"
+```
+
+*(This points to the root of the project, which will be /app/sql_app.db inside the container.)*
+
+```
+touch sql_app.db
+sudo docker-compose run --rm backend python -c "from backend.scripts.populate_airport_data import populate_airport_data; populate_airport_data()"
+
+```
+#### Run the Application
+
+```sudo docker-compose-up --build -d```
+
+### Running Locally (Development)
+
+#### Backend
 
 1.  **Navigate to the backend directory:**
     ```sh
@@ -60,9 +96,9 @@ Follow these instructions to run the application on your local machine.
     cd ../
     uvicorn backend.main:app --reload
     ```
-    The backend API will be available at `http://127.0.0.1:8000`.
+    The backend API will be available at `http://127.0.0.1:8003`.
 
-### Frontend
+#### Frontend
 
 **Prerequisites:** You will need **Node.js version 20.19.0 or newer**. You can manage Node.js versions easily using [nvm](https://github.com/nvm-sh/nvm).
 
@@ -76,7 +112,7 @@ Follow these instructions to run the application on your local machine.
     nvm use 20
     ```
 
-### Installation & Running the App
+#### Installation & Running the App
 
 1.  **Navigate to the frontend directory:**
     ```sh
@@ -98,7 +134,7 @@ Follow these instructions to run the application on your local machine.
 4.  **Open the application:**
     Open your web browser and navigate to the URL provided in the terminal (usually `http://localhost:5173`). The page will automatically reload if you make changes to the code.
 
-### Running Tests
+#### Running Tests
 
 To run the automated tests for the components:
 

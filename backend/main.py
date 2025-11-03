@@ -23,8 +23,8 @@ from backend.services.airport_service import get_airport_by_icao
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup event
-    print("Application startup: Checking and populating airport data...")
-    populate_airport_data()
+    print("Application startup: Be sure to have pre-populated the datbase!!")
+    #populate_airport_data()
     yield
     # Shutdown event (optional)
     print("Application shutdown.")
